@@ -1,0 +1,51 @@
+{
+  "name": "finora---smart-personal-finance",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx server.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "db:init": "tsx scripts/init-db.ts",
+    "db:seed": "tsx scripts/seed-db.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@sendgrid/mail": "^8.1.6",
+    "arabic-reshaper": "^1.1.0",
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "finnhub": "^2.0.12",
+    "i18next": "^25.7.3",
+    "idb": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
+    "pdfmake": "^0.2.15",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-i18next": "^16.5.0",
+    "react-router-dom": "^7.11.0",
+    "recharts": "^2.15.0",
+    "uuid": "^11.0.3",
+    "zustand": "^5.0.9"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

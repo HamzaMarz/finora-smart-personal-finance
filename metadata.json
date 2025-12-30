@@ -1,0 +1,8 @@
+{
+  "name": "Finora - Smart Personal Finance",
+  "description": "A modern, scalable personal finance management application with full localization, AI insights, and cross-platform readiness.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
