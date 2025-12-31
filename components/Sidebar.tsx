@@ -32,7 +32,7 @@ const Sidebar: React.FC = () => {
                     </div>
                     <div className="flex flex-col">
                         <h1 className="font-heading font-bold text-2xl text-textPrimary dark:text-white tracking-tight">{t('app_name')}</h1>
-                        <span className="text-[10px] font-bold tracking-widest text-secondary uppercase opacity-80">Personal Finance</span>
+                        <span className="text-[10px] font-bold tracking-widest text-secondary uppercase opacity-80">{t('personal_finance')}</span>
                     </div>
                 </div>
             </div>
@@ -57,8 +57,8 @@ const Sidebar: React.FC = () => {
                         <span className="text-sm">{t(item.label)}</span>
                         {item.label === 'notifications' && unreadCount > 0 && (
                             <span className={`ms-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${window.location.hash.endsWith('notifications')
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-error text-white shadow-sm shadow-error/40'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-error text-white shadow-sm shadow-error/40'
                                 }`}>
                                 {unreadCount > 99 ? '99+' : unreadCount}
                             </span>

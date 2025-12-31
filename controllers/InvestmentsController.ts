@@ -52,8 +52,16 @@ export class InvestmentsController {
                 userId,
                 type: 'investment',
                 category: 'investment',
-                title: 'Investment Added',
-                message: `New investment in ${assetName} (${symbol}) for ${currency} ${initialAmount.toFixed(2)}`,
+                title: 'investment_added_notif_title',
+                message: JSON.stringify({
+                    key: 'investment_added_notif_msg',
+                    params: {
+                        assetName: assetName,
+                        assetType: assetType || 'asset',
+                        currency: currency || 'USD',
+                        amount: (buyPrice * quantity).toFixed(2)
+                    }
+                }),
                 isRead: false,
             });
 

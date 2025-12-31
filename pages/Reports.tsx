@@ -8,8 +8,8 @@ import {
   FinoraPieChart,
   FinoraAreaChart
 } from '../components/charts/ChartWrappers';
-import Card from '../components/Card';
-import Button from '../components/Button';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import toast from 'react-hot-toast';
 
 interface ReportData {
@@ -248,14 +248,30 @@ const Reports: React.FC = () => {
                 <Card className="p-6">
                   <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('income_vs_expenses')}</h3>
                   <div className="h-[300px]">
-                    <FinoraLineChart data={reportData.charts.monthlyTrend} dataKeys={['income', 'expenses']} height={300} />
+                    <FinoraLineChart
+                      data={reportData.charts.monthlyTrend.map(item => ({
+                        ...item,
+                        [t('income')]: item.income,
+                        [t('expenses')]: item.expenses
+                      }))}
+                      dataKeys={[t('income'), t('expenses')]}
+                      height={300}
+                    />
                   </div>
                 </Card>
                 <Card className="p-6">
                   <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('expense_dist')}</h3>
                   <div className="h-[300px]">
                     {reportData.charts.expensesByCategory.length > 0 ? (
-                      <FinoraPieChart data={reportData.charts.expensesByCategory} nameKey="name" valueKey="value" height={300} />
+                      <FinoraPieChart
+                        data={reportData.charts.expensesByCategory.map(item => ({
+                          name: t(item.name.toLowerCase()),
+                          value: item.value
+                        }))}
+                        nameKey="name"
+                        valueKey="value"
+                        height={300}
+                      />
                     ) : (
                       <div className="flex items-center justify-center h-full text-textSecondary">{t('no_data')}</div>
                     )}

@@ -4,9 +4,9 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
 import { AuthService } from '../services/auth.service';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Input from '../components/Input';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
@@ -115,7 +115,8 @@ const Login: React.FC = () => {
             <span className="material-symbols-outlined text-4xl">account_balance_wallet</span>
           </div>
           <h1 className="text-4xl font-black tracking-tight mb-2 text-textPrimary dark:text-white">{t('app_name')}</h1>
-          <p className="text-textSecondary dark:text-gray-400 font-medium">{t('welcome')}</p>
+          <p className="text-lg font-bold text-primary mb-2">{t('personal_finance')}</p>
+          <p className="text-textSecondary dark:text-gray-400 font-medium">{t('welcome_back_message')}</p>
         </div>
 
         <Card className="p-8 shadow-2xl border-none">

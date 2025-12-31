@@ -1,111 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FinoraPieChart, FinoraLineChart } from '../components/charts/ChartWrappers';
-import api from '../services/api';
-import { useAuthStore } from '../store/useAuthStore';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Input from '../components/Input';
-import toast from 'react-hot-toast';
+import { useExpenses } from '../hooks/useExpenses';
+import { useCurrency } from '../hooks/useCurrency';
+import { useDateTime } from '../hooks/useDateTime';
+import { getTodayDateString } from '../utils/date';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import EmptyState from '../components/ui/EmptyState';
+import { EXPENSE_CATEGORIES } from '../constants/categories';
 
 const Expenses: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const { user } = useAuthStore();
-  const currency = user?.baseCurrency || 'USD';
+  const { t } = useTranslation();
+  const { expenses, loading, addExpense, updateExpense, deleteExpense } = useExpenses();
+  const { formatCurrency, currency } = useCurrency();
+  const { formatDate, formatTime } = useDateTime();
 
-  const formatAmount = (amount: number) => {
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        currencyDisplay: 'narrowSymbol'
-      }).format(amount);
-    } catch (e) {
-      return `${currency} ${amount.toFixed(2)}`;
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const locale = i18n.language === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US';
-      return new Intl.DateTimeFormat(locale, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }).format(new Date(dateStr));
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
-  const formatTime = (dateStr: string) => {
-    try {
-      const locale = i18n.language === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US';
-      return new Intl.DateTimeFormat(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(new Date(dateStr));
-    } catch (e) {
-      return '';
-    }
-  };
-
-  const [expenses, setExpenses] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
-    category: 'None',
+    category: 'none',
     amount: '',
     currency: currency,
     description: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayDateString(),
     time: new Date().toTimeString().slice(0, 5),
     isRecurring: false,
     recurrenceType: 'monthly'
   });
 
-  const categories = ['None', 'Housing', 'Food', 'Transport', 'Leisure', 'Health', 'Education', 'Shopping', 'Utilities', 'Other'];
-
-  useEffect(() => {
-    fetchExpenses();
-  }, [currency]);
-
-  useEffect(() => {
-    if (currency) {
-      setFormData(prev => ({ ...prev, currency }));
-    }
-  }, [currency]);
-
-  const fetchExpenses = async () => {
-    try {
-      const response = await api.get('/expenses');
-      setExpenses(response.data);
-    } catch (error) {
-      console.error('Failed to fetch expenses:', error);
-      toast.error('Failed to load expenses');
-    }
-  };
-
-  const validateForm = () => {
-    if (!formData.category) {
-      toast.error('Please select a category');
-      return false;
-    }
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      toast.error('Please enter a valid amount');
-      return false;
-    }
-    return true;
-  };
+  const categories = ['none', ...EXPENSE_CATEGORIES];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
 
     try {
       const expenseDateTime = new Date(`${formData.date}T${formData.time}`).toISOString();
@@ -117,46 +48,33 @@ const Expenses: React.FC = () => {
         description: formData.description,
         expenseDate: expenseDateTime,
         isRecurring: formData.isRecurring,
-        recurrenceType: formData.isRecurring ? formData.recurrenceType : null
+        recurrenceType: formData.isRecurring ? formData.recurrenceType : undefined
       };
 
       if (editingId) {
-        await api.put(`/expenses/${editingId}`, payload);
-        toast.success('Expense updated successfully!');
+        await updateExpense(editingId, payload);
       } else {
-        await api.post('/expenses', payload);
-        toast.success('Expense added successfully!');
+        await addExpense(payload);
       }
 
       setShowModal(false);
       resetForm();
-      fetchExpenses();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to add expense');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      // Error handling is done in the hook
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this expense?')) return;
-    try {
-      await api.delete(`/expenses/${id}`);
-      toast.success('Expense deleted successfully');
-      fetchExpenses();
-    } catch (error) {
-      console.error('Failed to delete expense:', error);
-      toast.error('Failed to delete expense');
-    }
+    await deleteExpense(id);
   };
 
   const resetForm = () => {
     setFormData({
-      category: 'None',
+      category: 'none',
       amount: '',
       currency: currency,
       description: '',
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDateString(),
       time: new Date().toTimeString().slice(0, 5),
       isRecurring: false,
       recurrenceType: 'monthly'
@@ -189,7 +107,6 @@ const Expenses: React.FC = () => {
   const trendData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
-    const monthKey = d.toLocaleString('default', { month: 'short' });
     const year = d.getFullYear();
     const month = d.getMonth();
 
@@ -199,8 +116,33 @@ const Expenses: React.FC = () => {
     }).reduce((sum, e) => sum + e.amount, 0);
 
     const monthShort = d.toLocaleString('en-US', { month: 'short' }).toLowerCase();
-    return { name: t(monthShort), amount };
+    return { name: t(monthShort), [t('amount_label')]: amount };
   });
+
+  const getCategoryColor = (category: string) => {
+    const colorMap: Record<string, string> = {
+      food: 'bg-orange-100 text-orange-600 dark:bg-orange-900/20',
+      transport: 'bg-blue-100 text-blue-600 dark:bg-blue-900/20',
+      housing: 'bg-purple-100 text-purple-600 dark:bg-purple-900/20',
+      leisure: 'bg-green-100 text-green-600 dark:bg-green-900/20',
+      health: 'bg-red-100 text-red-600 dark:bg-red-900/20',
+      shopping: 'bg-pink-100 text-pink-600 dark:bg-pink-900/20'
+    };
+    return colorMap[category.toLowerCase()] || 'bg-gray-100 text-gray-600 dark:bg-gray-800';
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const iconMap: Record<string, string> = {
+      food: 'restaurant',
+      transport: 'directions_car',
+      housing: 'home',
+      leisure: 'confirmation_number',
+      health: 'medical_services'
+    };
+    return iconMap[category.toLowerCase()] || 'receipt';
+  };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6 animate-fade-in relative">
@@ -225,15 +167,14 @@ const Expenses: React.FC = () => {
           {categoryData.length > 0 ? (
             <FinoraPieChart data={categoryData} nameKey="name" valueKey="value" height={250} />
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-textSecondary dark:text-gray-400 flex-col gap-2">
-              <span className="material-symbols-outlined text-4xl opacity-50">pie_chart</span>
-              <p>No expense data available</p>
-            </div>
+            <EmptyState icon="pie_chart" message={t('no_data')} className="h-[250px]" />
           )}
         </Card>
         <Card className="p-6">
-          <h3 className="text-lg font-bold mb-4 text-textPrimary dark:text-white">{t('expense_trend')} <span className="text-sm font-normal text-textSecondary">({t('last_6_months')})</span></h3>
-          <FinoraLineChart data={trendData} dataKeys={['amount']} height={250} />
+          <h3 className="text-lg font-bold mb-4 text-textPrimary dark:text-white">
+            {t('expense_trend')} <span className="text-sm font-normal text-textSecondary">({t('last_6_months')})</span>
+          </h3>
+          <FinoraLineChart data={trendData} dataKeys={[t('amount_label')]} height={250} />
         </Card>
       </div>
 
@@ -241,42 +182,32 @@ const Expenses: React.FC = () => {
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
           <h3 className="font-bold text-lg text-textPrimary dark:text-white">{t('recent_expenses')}</h3>
-          <span className="text-sm text-textSecondary dark:text-gray-400 font-medium px-2 py-1 bg-white dark:bg-gray-700 rounded-lg">{expenses.length} {t('records')}</span>
+          <span className="text-sm text-textSecondary dark:text-gray-400 font-medium px-2 py-1 bg-white dark:bg-gray-700 rounded-lg">
+            {expenses.length} {t('records')}
+          </span>
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[600px] overflow-y-auto custom-scrollbar">
           {expenses.length === 0 ? (
-            <div className="p-16 text-center text-textSecondary dark:text-gray-400 flex flex-col items-center gap-4">
-              <div className="size-20 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-                <span className="material-symbols-outlined text-4xl opacity-50">receipt_long</span>
-              </div>
-              <p className="text-lg font-medium">No expenses found</p>
-              <Button variant="ghost" onClick={() => setShowModal(true)}>
-                Add your first expense
+            <div className="p-16 text-center">
+              <EmptyState icon="receipt_long" message={t('no_expenses_found')} />
+              <Button variant="ghost" onClick={() => setShowModal(true)} className="mt-4">
+                {t('add_first_expense')}
               </Button>
             </div>
           ) : (
             expenses.map((expense) => (
-              <div key={expense.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group flex items-center justify-between">
+              <div
+                key={expense.id}
+                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group flex items-center justify-between"
+              >
                 <div className="flex items-center gap-4">
-                  <div className={`size-12 rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ${expense.category === 'Food' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/20' :
-                      expense.category === 'Transport' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20' :
-                        expense.category === 'Housing' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/20' :
-                          expense.category === 'Leisure' ? 'bg-green-100 text-green-600 dark:bg-green-900/20' :
-                            expense.category === 'Health' ? 'bg-red-100 text-red-600 dark:bg-red-900/20' :
-                              expense.category === 'Shopping' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/20' :
-                                'bg-gray-100 text-gray-600 dark:bg-gray-800'
-                    }`}>
-                    <span className="material-symbols-outlined text-[24px]">
-                      {expense.category === 'Food' ? 'restaurant' :
-                        expense.category === 'Transport' ? 'directions_car' :
-                          expense.category === 'Housing' ? 'home' :
-                            expense.category === 'Leisure' ? 'confirmation_number' :
-                              expense.category === 'Health' ? 'medical_services' :
-                                'receipt'}
-                    </span>
+                  <div className={`size-12 rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ${getCategoryColor(expense.category)}`}>
+                    <span className="material-symbols-outlined text-[24px]">{getCategoryIcon(expense.category)}</span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-base text-textPrimary dark:text-white mb-0.5">{expense.description || t(expense.category.toLowerCase())}</h4>
+                    <h4 className="font-bold text-base text-textPrimary dark:text-white mb-0.5">
+                      {expense.description || t(expense.category.toLowerCase())}
+                    </h4>
                     <div className="flex items-center gap-3 text-xs text-textSecondary dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">calendar_today</span>
@@ -286,7 +217,7 @@ const Expenses: React.FC = () => {
                         <span className="material-symbols-outlined text-[14px]">schedule</span>
                         {formatTime(expense.expenseDate)}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 font-medium`}>
+                      <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 font-medium">
                         {t(expense.category.toLowerCase())}
                       </span>
                     </div>
@@ -294,9 +225,7 @@ const Expenses: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <span className="font-bold text-error text-lg tracking-tight">
-                    - {formatAmount(expense.amount)}
-                  </span>
+                  <span className="font-bold text-error text-lg tracking-tight">- {formatCurrency(expense.amount)}</span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleEdit(expense)}
@@ -326,7 +255,9 @@ const Expenses: React.FC = () => {
         >
           <Card className="w-full max-w-lg overflow-hidden animate-scale-up" onClick={(e) => e?.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-              <h3 className="font-bold text-xl text-textPrimary dark:text-white">{editingId ? t('edit_expense') : t('add_expense')}</h3>
+              <h3 className="font-bold text-xl text-textPrimary dark:text-white">
+                {editingId ? t('edit_expense') : t('add_expense')}
+              </h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="size-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-textSecondary dark:text-gray-400"
@@ -339,7 +270,9 @@ const Expenses: React.FC = () => {
               <div className="space-y-4">
                 {/* Amount & Currency */}
                 <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">{t('amount')} <span className="text-error">*</span></label>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">
+                    {t('amount')} <span className="text-error">*</span>
+                  </label>
                   <div className="flex bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-transparent focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all overflow-hidden group hover:border-gray-200 dark:hover:border-gray-700">
                     <select
                       value={formData.currency}
@@ -365,7 +298,9 @@ const Expenses: React.FC = () => {
 
                 {/* Category */}
                 <div>
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">{t('category')} <span className="text-error">*</span></label>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">
+                    {t('category')} <span className="text-error">*</span>
+                  </label>
                   <div className="relative">
                     <select
                       required
@@ -416,7 +351,9 @@ const Expenses: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
                       className="size-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer accent-primary"
                     />
-                    <label htmlFor="isRecurring" className="text-sm font-bold cursor-pointer flex-1 text-textPrimary dark:text-white">{t('is_recurring')}</label>
+                    <label htmlFor="isRecurring" className="text-sm font-bold cursor-pointer flex-1 text-textPrimary dark:text-white">
+                      {t('is_recurring')}
+                    </label>
                   </div>
                   {formData.isRecurring && (
                     <div className="mt-3 animate-fade-in pl-8">

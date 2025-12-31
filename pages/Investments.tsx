@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import api from '../services/api';
 import { FinoraLineChart, FinoraPieChart } from '../components/charts/ChartWrappers';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Input from '../components/Input';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 import toast from 'react-hot-toast';
+import { ASSET_TYPES, ASSET_TYPE_ICONS } from '../constants/investment';
+import { formatCurrency as formatCurrencyUtil } from '../utils/currency';
+import { getTodayDateString } from '../utils/date';
 
 interface Investment {
   id: string;
@@ -62,10 +65,10 @@ const Investments: React.FC = () => {
     buyPrice: 0,
     currentValue: 0,
     currency: 'USD',
-    purchaseDate: new Date().toISOString().split('T')[0],
+    purchaseDate: getTodayDateString(),
     notes: '',
     sellPrice: 0,
-    closeDate: new Date().toISOString().split('T')[0],
+    closeDate: getTodayDateString(),
   });
 
   const [isClosing, setIsClosing] = useState(false);
@@ -88,7 +91,7 @@ const Investments: React.FC = () => {
       setSupportedCryptos(cryptoRes.data);
       setSupportedForex(forexRes.data);
     } catch (err) {
-      console.error('Failed to fetch supported assets', err);
+      // Failed to fetch supported assets - non-critical
     } finally {
       setLoadingAssets(false);
     }
@@ -184,7 +187,7 @@ const Investments: React.FC = () => {
       fetchInvestments();
     } catch (err) {
       console.error('Save failed', err);
-      toast.error('Failed to save investment');
+      toast.error(t('error_occurred'));
     }
   };
 
@@ -200,7 +203,7 @@ const Investments: React.FC = () => {
       fetchInvestments();
     } catch (err) {
       console.error('Close failed', err);
-      toast.error('Failed to close investment');
+      toast.error(t('error_occurred'));
     }
   };
 
@@ -232,7 +235,7 @@ const Investments: React.FC = () => {
       fetchInvestments();
     } catch (err) {
       console.error('Delete failed', err);
-      toast.error('Failed to delete investment');
+      toast.error(t('error_occurred'));
     }
   };
 
@@ -264,10 +267,7 @@ const Investments: React.FC = () => {
   };
 
   const formatAmount = (amount: number, currencyCode: string = baseCurrency) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
+    return formatCurrencyUtil(amount, currencyCode);
   };
 
   const filteredInvestments = investments.filter(inv => {

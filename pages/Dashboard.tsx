@@ -1,103 +1,74 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FinoraAreaChart, FinoraBarChart } from '../components/charts/ChartWrappers';
-import { FinanceService } from '../services/finance.service';
-import { useAppStore } from '../store/useAppStore';
-import Card from '../components/Card';
+import { useDashboard } from '../hooks/useDashboard';
+import { useCurrency } from '../hooks/useCurrency';
+import Card from '../components/ui/Card';
+import StatCard from '../components/ui/StatCard';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
-  const { currency } = useAppStore();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  const { data, loading } = useDashboard();
+  const { formatCurrency, currency } = useCurrency();
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const summary = await FinanceService.getSummary();
-        setData(summary);
-      } catch (error) {
-        console.error('Dashboard load failed', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
-  }, [currency]);
+  // Get current month name
+  const currentMonth = new Date().toLocaleDateString(t('language') === 'ar' ? 'ar' : 'en', { month: 'short' });
 
   const netWorthData = [
-    { name: t('jan'), value: 1100000 },
-    { name: t('feb'), value: 1150000 },
-    { name: t('mar'), value: 1120000 },
-    { name: t('apr'), value: 1200000 },
-    { name: t('may'), value: 1230000 },
-    { name: t('jun'), value: data?.netWorth || 1250000 },
+    { name: currentMonth, value: data?.netWorth || 0 },
   ];
 
   const incExpData = [
-    { name: t('mar'), [t('income')]: 12000, [t('expenses')]: 4500 },
-    { name: t('apr'), [t('income')]: 11500, [t('expenses')]: 4200 },
-    { name: t('may'), [t('income')]: 13000, [t('expenses')]: 4800 },
-    { name: t('jun'), [t('income')]: data?.income || 12500, [t('expenses')]: data?.expenses || 4200 },
+    { name: currentMonth, [t('income')]: data?.income || 0, [t('expenses')]: data?.expenses || 0 },
   ];
-
-  const formatVal = (val: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(val);
-  };
 
   const stats = [
     {
       label: 'total_net_worth',
-      value: data ? formatVal(data.netWorth) : '---',
+      value: data ? formatCurrency(data.netWorth) : '---',
       icon: 'account_balance',
       color: 'text-primary',
-      bg: 'bg-primary/10'
+      bg: 'bg-primary/10 text-primary'
     },
     {
       label: 'monthly_income',
-      value: data ? formatVal(data.income) : '---',
+      value: data ? formatCurrency(data.income) : '---',
       icon: 'trending_up',
       color: 'text-success',
-      bg: 'bg-green-500/10'
+      bg: 'bg-green-500/10 text-success'
     },
     {
       label: 'monthly_expenses',
-      value: data ? formatVal(data.expenses) : '---',
+      value: data ? formatCurrency(data.expenses) : '---',
       icon: 'trending_down',
       color: 'text-error',
-      bg: 'bg-red-500/10'
+      bg: 'bg-red-500/10 text-error'
     },
     {
       label: 'total_savings',
-      value: data ? formatVal(data.savings) : '---',
+      value: data ? formatCurrency(data.savings) : '---',
       icon: 'savings',
       color: 'text-secondary',
-      bg: 'bg-blue-500/10'
+      bg: 'bg-blue-500/10 text-secondary'
     },
   ];
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-[50vh]">
-      <div className="size-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-    </div>
-  );
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <Card key={i} className="p-6 transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg dark:hover:shadow-none hover:border-primary/20">
-            <div className="flex items-center gap-4">
-              <div className={`size-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${stat.bg} ${stat.color}`}>
-                <span className="material-symbols-outlined text-[28px]">{stat.icon}</span>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-textSecondary dark:text-gray-400 uppercase tracking-wider mb-1">{t(stat.label)}</p>
-                <h3 className="text-2xl font-bold text-textPrimary dark:text-white">{stat.value}</h3>
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            key={i}
+            label={t(stat.label)}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            bg={stat.bg}
+          />
         ))}
       </div>
 
@@ -107,7 +78,7 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-bold text-textPrimary dark:text-white">{t('net_worth_trend')}</h3>
-              <p className="text-xs text-textSecondary dark:text-gray-400">{t('last_6_months')}</p>
+              <p className="text-xs text-textSecondary dark:text-gray-400">{t('current_month')}</p>
             </div>
             <button className="size-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-textSecondary dark:text-gray-400 transition-colors">
               <span className="material-symbols-outlined text-xl">more_horiz</span>

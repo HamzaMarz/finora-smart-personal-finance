@@ -1,23 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import api from '../services/api';
-import { useAppStore } from '../store/useAppStore';
-import { useAuthStore } from '../store/useAuthStore';
 import { FinoraAreaChart, FinoraBarChart } from '../components/charts/ChartWrappers';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Input from '../components/Input';
-import toast from 'react-hot-toast';
+import { useSavings } from '../hooks/useSavings';
+import { useIncome } from '../hooks/useIncome';
+import { useCurrency } from '../hooks/useCurrency';
+import { useAuthStore } from '../store/useAuthStore';
+import { getTodayDateString } from '../utils/date';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import EmptyState from '../components/ui/EmptyState';
+import { useAppStore } from '../store/useAppStore';
 
 const Savings: React.FC = () => {
   const { t } = useTranslation();
-  const { currency, language } = useAppStore();
+  const { savings, loading, addSaving, updateSaving, deleteSaving } = useSavings();
+  const { income } = useIncome();
+  const { formatCurrency, currency } = useCurrency();
   const { user } = useAuthStore();
+  const { language } = useAppStore();
 
-  const [savings, setSavings] = useState<any[]>([]);
-  const [totalIncome, setTotalIncome] = useState(0);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
@@ -25,54 +29,12 @@ const Savings: React.FC = () => {
     amount: '',
     currency: currency,
     type: 'manual',
-    savingDate: new Date().toISOString().split('T')[0],
+    savingDate: getTodayDateString(),
     notes: ''
   });
 
-  useEffect(() => {
-    fetchSavings();
-    fetchIncome();
-  }, [currency]);
-
-  useEffect(() => {
-    if (currency) {
-      setFormData(prev => ({ ...prev, currency }));
-    }
-  }, [currency]);
-
-  const fetchIncome = async () => {
-    try {
-      const response = await api.get('/income');
-      const activeIncome = response.data.filter((i: any) => i.isActive).reduce((sum: number, inc: any) => sum + inc.amount, 0);
-      setTotalIncome(activeIncome);
-    } catch (e) {
-      console.error('Failed to fetch income for savings calculation');
-    }
-  };
-
-  const fetchSavings = async () => {
-    try {
-      const response = await api.get('/savings');
-      setSavings(response.data);
-    } catch (error) {
-      console.error('Failed to fetch savings:', error);
-      toast.error('Failed to fetch savings data');
-    }
-  };
-
-  const validateForm = () => {
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      toast.error('Please enter a valid amount');
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
 
     try {
       const payload = {
@@ -84,33 +46,20 @@ const Savings: React.FC = () => {
       };
 
       if (editingId) {
-        await api.put(`/savings/${editingId}`, payload);
-        toast.success(t('saving_updated_success'));
+        await updateSaving(editingId, payload);
       } else {
-        await api.post('/savings', payload);
-        toast.success(t('saving_added_success'));
+        await addSaving(payload);
       }
 
       setShowModal(false);
       resetForm();
-      fetchSavings();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save saving');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      // Error handling is done in the hook
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('delete_saving_confirm'))) return;
-    try {
-      await api.delete(`/savings/${id}`);
-      toast.success(t('saving_deleted_success'));
-      fetchSavings();
-    } catch (error) {
-      console.error('Failed to delete saving:', error);
-      toast.error('Failed to delete');
-    }
+    await deleteSaving(id);
   };
 
   const resetForm = () => {
@@ -118,7 +67,7 @@ const Savings: React.FC = () => {
       amount: '',
       currency: currency,
       type: 'manual',
-      savingDate: new Date().toISOString().split('T')[0],
+      savingDate: getTodayDateString(),
       notes: ''
     });
     setEditingId(null);
@@ -129,22 +78,15 @@ const Savings: React.FC = () => {
       amount: saving.amount.toString(),
       currency: currency,
       type: saving.type || 'manual',
-      savingDate: saving.savingDate ? saving.savingDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      savingDate: saving.savingDate ? saving.savingDate.split('T')[0] : getTodayDateString(),
       notes: saving.notes || ''
     });
     setEditingId(saving.id);
     setShowModal(true);
   };
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-      currencyDisplay: 'narrowSymbol'
-    }).format(amount);
-  };
-
-  // Chart Logic & Summary Data
+  // Calculate data
+  const totalIncome = income.filter(i => i.isActive).reduce((sum, inc) => sum + inc.amount, 0);
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const projectedAuto = savings
     .filter(s => s.type === 'automatic' && s.savingDate.startsWith(currentMonthStr))
@@ -165,7 +107,7 @@ const Savings: React.FC = () => {
     if (last && last.name === month) {
       last.savings = cumulative;
     } else {
-      acc.push({ name: month, savings: cumulative });
+      acc.push({ name: t(month.toLowerCase()), [t('savings')]: cumulative });
     }
     return acc;
   }, []);
@@ -187,13 +129,13 @@ const Savings: React.FC = () => {
     ...comparisonMap[month]
   }));
 
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="space-y-6 animate-fade-in relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-textPrimary dark:text-white">
-            {t('savings')}
-          </h2>
+          <h2 className="text-2xl font-bold text-textPrimary dark:text-white">{t('savings')}</h2>
           <p className="text-textSecondary dark:text-gray-400 mt-1">{t('recent_savings')}</p>
         </div>
         <Button
@@ -216,9 +158,11 @@ const Savings: React.FC = () => {
             <span className="material-symbols-outlined text-3xl">savings</span>
           </div>
           <div>
-            <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t('total_savings')}</p>
+            <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">
+              {t('total_savings')}
+            </p>
             <p className="text-3xl font-extrabold text-textPrimary dark:text-white mt-1">
-              {formatAmount(totalSavingsAmount)}
+              {formatCurrency(totalSavingsAmount)}
             </p>
           </div>
         </Card>
@@ -229,12 +173,12 @@ const Savings: React.FC = () => {
             <span className="material-symbols-outlined text-3xl">auto_mode</span>
           </div>
           <div>
-            <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t('projected_auto_savings')}</p>
-            <p className="text-3xl font-extrabold text-success mt-1">
-              {formatAmount(projectedAuto)}
+            <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">
+              {t('projected_auto_savings')}
             </p>
+            <p className="text-3xl font-extrabold text-success mt-1">{formatCurrency(projectedAuto)}</p>
             <p className="text-[10px] text-textSecondary dark:text-gray-400 mt-1 font-medium">
-              {t('auto_saving_desc', { percentage: user?.savingsPercentage || 0, amount: formatAmount(totalIncome) })}
+              {t('auto_saving_desc', { percentage: user?.savingsPercentage || 0, amount: formatCurrency(totalIncome) })}
             </p>
           </div>
         </Card>
@@ -244,13 +188,21 @@ const Savings: React.FC = () => {
         <Card className="p-6">
           <h3 className="text-lg font-bold mb-4 text-textPrimary dark:text-white">{t('savings_growth')}</h3>
           <div className="h-[250px]">
-            <FinoraAreaChart data={growthData} dataKey="savings" />
+            {growthData.length > 0 ? (
+              <FinoraAreaChart data={growthData} dataKey={t('savings')} />
+            ) : (
+              <EmptyState icon="trending_up" message={t('no_data')} className="h-full" />
+            )}
           </div>
         </Card>
         <Card className="p-6">
           <h3 className="text-lg font-bold mb-4 text-textPrimary dark:text-white">{t('auto_vs_manual')}</h3>
           <div className="h-[250px]">
-            <FinoraBarChart data={comparisonData} dataKeys={[t('auto'), t('manual')]} />
+            {comparisonData.length > 0 ? (
+              <FinoraBarChart data={comparisonData} dataKeys={[t('auto'), t('manual')]} />
+            ) : (
+              <EmptyState icon="bar_chart" message={t('no_data')} className="h-full" />
+            )}
           </div>
         </Card>
       </div>
@@ -275,56 +227,61 @@ const Savings: React.FC = () => {
               {savings.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-16 text-center text-textSecondary dark:text-gray-400">
-                    <div className="flex flex-col items-center gap-3">
-                      <span className="material-symbols-outlined text-4xl opacity-50">money_off</span>
-                      <p className="font-medium">{t('no_records_found')}</p>
-                    </div>
+                    <EmptyState icon="money_off" message={t('no_records_found')} />
                   </td>
                 </tr>
               ) : (
-                [...savings].sort((a, b) => new Date(b.savingDate).getTime() - new Date(a.savingDate).getTime()).map((s) => (
-                  <tr key={s.id} className={`group transition-colors ${s.isVirtual ? 'bg-success/5 border-l-4 border-l-success' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}>
-                    <td className="px-6 py-5 pl-8 font-medium text-textPrimary dark:text-white">
-                      {new Date(s.savingDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${s.type === 'automatic' ? 'bg-primary/10 text-primary' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                        }`}>
-                        {s.type === 'automatic' ? t('auto_saving') : t('manual_saving')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-textSecondary dark:text-gray-400 truncate max-w-[200px]">
-                      {s.notes || '-'}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-primary text-base">
-                      + {formatAmount(s.amount)}
-                    </td>
-                    <td className="px-6 py-5 pr-8">
-                      <div className="flex justify-end gap-2 text-right">
-                        {!s.isVirtual ? (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                            <button
-                              onClick={() => handleEdit(s)}
-                              className="size-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-textSecondary dark:text-gray-400 hover:text-primary transition-colors flex items-center justify-center"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(s.id)}
-                              className="size-8 rounded-lg hover:bg-error/10 text-textSecondary dark:text-gray-400 hover:text-error transition-colors flex items-center justify-center"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-bold text-success uppercase tracking-wider px-2 py-1 bg-success/10 rounded-lg">
-                            {t('projected')}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                [...savings]
+                  .sort((a, b) => new Date(b.savingDate).getTime() - new Date(a.savingDate).getTime())
+                  .map((s) => (
+                    <tr
+                      key={s.id}
+                      className={`group transition-colors ${s.isVirtual ? 'bg-success/5 border-l-4 border-l-success' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        }`}
+                    >
+                      <td className="px-6 py-5 pl-8 font-medium text-textPrimary dark:text-white">
+                        {new Date(s.savingDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-5">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${s.type === 'automatic'
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                            }`}
+                        >
+                          {s.type === 'automatic' ? t('auto_saving') : t('manual_saving')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-textSecondary dark:text-gray-400 truncate max-w-[200px]">
+                        {s.notes || '-'}
+                      </td>
+                      <td className="px-6 py-5 font-bold text-primary text-base">+ {formatCurrency(s.amount)}</td>
+                      <td className="px-6 py-5 pr-8">
+                        <div className="flex justify-end gap-2 text-right">
+                          {!s.isVirtual ? (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                              <button
+                                onClick={() => handleEdit(s)}
+                                className="size-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-textSecondary dark:text-gray-400 hover:text-primary transition-colors flex items-center justify-center"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                              <button
+                                onClick={() => handleDelete(s.id)}
+                                className="size-8 rounded-lg hover:bg-error/10 text-textSecondary dark:text-gray-400 hover:text-error transition-colors flex items-center justify-center"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-success uppercase tracking-wider px-2 py-1 bg-success/10 rounded-lg">
+                              {t('projected')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
               )}
             </tbody>
           </table>
@@ -339,7 +296,9 @@ const Savings: React.FC = () => {
         >
           <Card className="w-full max-w-lg overflow-hidden animate-scale-up" onClick={(e) => e?.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-              <h3 className="font-bold text-xl text-textPrimary dark:text-white">{editingId ? t('edit_saving') : t('add_saving')}</h3>
+              <h3 className="font-bold text-xl text-textPrimary dark:text-white">
+                {editingId ? t('edit_saving') : t('add_saving')}
+              </h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="size-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-textSecondary dark:text-gray-400 transition-colors"
@@ -351,7 +310,9 @@ const Savings: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">{t('amount')} <span className="text-error">*</span></label>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">
+                    {t('amount')} <span className="text-error">*</span>
+                  </label>
                   <div className="flex bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-transparent focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all overflow-hidden group hover:border-gray-200 dark:hover:border-gray-700">
                     <select
                       value={formData.currency}
