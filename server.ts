@@ -447,8 +447,15 @@ app.post('/income', authenticate, async (req: any, res) => {
       userId,
       type: 'income',
       category: 'income',
-      title: 'Income Added',
-      message: `New income source added: ${sourceName} - ${amount.toFixed(2)} ${currency || 'USD'}`,
+      title: 'income_added_title',
+      message: JSON.stringify({
+        key: 'income_added_msg',
+        params: {
+          sourceName,
+          amount: amount.toFixed(2),
+          currency: currency || 'USD'
+        }
+      }),
       isRead: false,
     });
 
@@ -544,8 +551,15 @@ app.post('/expenses', authenticate, async (req: any, res) => {
       userId,
       type: 'expense',
       category: 'expense',
-      title: 'Expense Added',
-      message: `New expense in ${category}: ${amount.toFixed(2)} (stored as $${usdAmount.toFixed(2)} USD)`,
+      title: 'expense_added_title',
+      message: JSON.stringify({
+        key: 'expense_added_msg',
+        params: {
+          category,
+          amount: amount.toFixed(2),
+          currency: 'USD' // Stored as USD
+        }
+      }),
       isRead: false,
     });
 
@@ -686,8 +700,14 @@ app.post('/savings', authenticate, async (req: any, res) => {
       userId,
       type: 'saving',
       category: 'savings',
-      title: 'Saving recorded',
-      message: `New saving recorded: ${amount.toFixed(2)} ${currency || 'USD'}`,
+      title: 'saving_recorded_title',
+      message: JSON.stringify({
+        key: 'saving_recorded_msg',
+        params: {
+          amount: amount.toFixed(2),
+          currency: currency || 'USD'
+        }
+      }),
       isRead: false,
     });
 
@@ -805,15 +825,35 @@ app.get('/notifications/unread-count', authenticate, NotificationsController.get
 // ==================== AI INSIGHTS ====================
 app.get('/ai-insights', authenticate, async (req: any, res) => {
   const userId = req.user.userId;
+  const lang = req.query.lang || 'en'; // detailed or summary
+
   const incomes = await StorageService.income.findByUser(userId);
   const expenses = await StorageService.expenses.findByUser(userId);
   const savings = await StorageService.savings.findByUser(userId);
   const investments = await StorageService.investments.findByUser(userId);
 
   try {
-    const insights = await aiService.generateInsights({ incomes, expenses, savings, investments });
+    const insights = await aiService.generateInsights({ incomes, expenses, savings, investments }, lang);
+
+    // Create notifications for each insight
+    try {
+      for (const insight of insights) {
+        // Check if we should avoid duplicates? For now, we follow user request: "A notification appears for each..."
+        await StorageService.notifications.create({
+          userId,
+          title: insight.title,
+          message: insight.short_summary, // Short summary for notification
+          category: 'alert',
+          isRead: false
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to create insight notifications:', notifError);
+    }
+
     res.json({ insights });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('AI Route Error:', error);
     res.status(500).json({ error: 'AI processing failed' });
   }
 });

@@ -233,12 +233,28 @@ const resources = {
       "asset": "Asset",
       "current_price": "Current Price",
       "reports_analyze_desc": "Analyze your financial performance and export professional insights.",
+      "expense": "Expense",
+      "investment": "Investment",
+      "expense_added_title": "Expense Added",
+      "expense_added_msg": "New expense in {{category}}: {{amount}}",
+      "income_added_title": "Income Added",
+      "income_added_msg": "New income source added: {{sourceName}} - {{amount}} {{currency}}",
+      "saving_recorded_title": "Saving Recorded",
+      "saving_recorded_msg": "New saving recorded: {{amount}} {{currency}}",
       "top_categories": "Top Categories"
     }
   },
   ar: {
     translation: {
       "app_name": "فينورا",
+      "expense": "مصروف",
+      "investment": "استثمار",
+      "expense_added_title": "تم إضافة مصروف",
+      "expense_added_msg": "مصروف جديد في فئة {{category}}: {{amount}}",
+      "income_added_title": "تم إضافة دخل",
+      "income_added_msg": "تم إضافة مصدر دخل جديد: {{sourceName}} - {{amount}} {{currency}}",
+      "saving_recorded_title": "تم تسجيل توفير",
+      "saving_recorded_msg": "تم تسجيل توفير جديد: {{amount}} {{currency}}",
       "dashboard": "لوحة التحكم",
       "expenses": "المصاريف",
       "income": "الدخل",

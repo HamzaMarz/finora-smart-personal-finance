@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&family=Roboto:wght@300;400;500;700&family=Cairo:wght@300;400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --primary: #2D9CDB;
+        --secondary: #56CCF2;
+        --success: #27AE60;
+        --warning: #F2C94C;
+        --error: #EB5757;
+        --background: #F9FAFB;
+        --surface: #FFFFFF;
+        --text-primary: #111827;
+        --text-secondary: #6B7280;
+    }
+
+    .dark {
+        --primary: #2D9CDB;
+        --secondary: #56CCF2;
+        --success: #27AE60;
+        --warning: #F2C94C;
+        --error: #EB5757;
+        --background: #1F2937;
+        --surface: #111827;
+        /* Darker surface for better contrast */
+        --text-primary: #F9FAFB;
+        --text-secondary: #9CA3AF;
+    }
+
+    body {
+        @apply bg-background dark:bg-darkBackground text-textPrimary dark:text-white font-body transition-colors duration-200 antialiased;
+    }
+
+    /* Font overrides for Arabic */
+    [lang="ar"] body {
+        font-family: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
+    }
+
+    [lang="ar"] h1,
+    [lang="ar"] h2,
+    [lang="ar"] h3,
+    [lang="ar"] h4,
+    [lang="ar"] h5,
+    [lang="ar"] h6 {
+        font-family: 'Cairo', 'Montserrat', sans-serif;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        @apply font-heading text-textPrimary dark:text-white;
+    }
+}
+
+@layer components {
+    .card {
+        @apply bg-surface dark:bg-darkSurface rounded-[16px] shadow-card dark:shadow-none border border-gray-100 dark:border-gray-800 transition-all duration-200;
+    }
+
+    .btn-primary {
+        @apply bg-primary text-white font-semibold rounded-xl px-4 py-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm;
+    }
+
+    .btn-secondary {
+        @apply bg-white dark:bg-darkSurface text-primary border border-primary/20 font-semibold rounded-xl px-4 py-2 hover:bg-primary/5 active:scale-95 transition-all;
+    }
+
+    .input-field {
+        @apply w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-primary/50 text-textPrimary dark:text-white transition-all placeholder-gray-400;
+    }
+}
+
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .rtl-flip {
+        @apply ltr:rotate-0 rtl:rotate-180;
+    }
+}

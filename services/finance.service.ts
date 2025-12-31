@@ -31,7 +31,7 @@ export const FinanceService = {
       ];
     }
   },
-  
+
   createIncome: (data: any) => api.post('/income', data).then(r => r.data),
 
   // Expenses
@@ -46,7 +46,7 @@ export const FinanceService = {
       ];
     }
   },
-  
+
   createExpense: (data: any) => api.post('/expenses', data).then(r => r.data),
 
   // Investments
@@ -54,13 +54,9 @@ export const FinanceService = {
   createInvestment: (data: any) => api.post('/investments', data).then(r => r.data),
 
   // AI Insights
-  getAiInsights: async () => {
-    try {
-      const response = await api.get('/ai-insights');
-      return response.data;
-    } catch (err) {
-      return { insights: "AI is currently in simulation mode. Connect to backend for personalized GPT-4 analysis." };
-    }
+  getAiInsights: async (language: string = 'en') => {
+    const response = await api.get(`/ai-insights?lang=${language}`);
+    return response.data;
   },
 
   // Backups

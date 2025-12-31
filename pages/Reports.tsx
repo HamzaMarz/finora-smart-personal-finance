@@ -8,6 +8,9 @@ import {
   FinoraPieChart,
   FinoraAreaChart
 } from '../components/charts/ChartWrappers';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import toast from 'react-hot-toast';
 
 interface ReportData {
   period: { start: string; end: string };
@@ -54,6 +57,7 @@ const Reports: React.FC = () => {
       setReportData(response.data);
     } catch (err) {
       console.error('Failed to fetch report data', err);
+      toast.error('Failed to generate report');
     } finally {
       setLoading(false);
     }
@@ -85,8 +89,10 @@ const Reports: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success(`${format.toUpperCase()} export successful`);
     } catch (err) {
       console.error(`Export ${format} failed`, err);
+      toast.error(`Failed to export ${format.toUpperCase()}`);
     } finally {
       setExporting(null);
     }
@@ -138,74 +144,79 @@ const Reports: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+          <h1 className="text-2xl font-bold text-textPrimary dark:text-white">
             {t('reports')}
           </h1>
-          <p className="text-slate-400 font-medium mt-1">
+          <p className="text-textSecondary dark:text-gray-400 mt-1">
             {t('reports_analyze_desc')}
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button
-            disabled={!!exporting}
+          <Button
+            isLoading={exporting === 'pdf'}
             onClick={() => handleExport('pdf')}
-            className="flex-1 md:flex-none h-12 px-6 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 disabled:opacity-50"
+            icon="picture_as_pdf"
+            variant="ghost"
+            className="flex-1 md:flex-none text-red-500 hover:bg-red-50 hover:text-red-700"
           >
-            {exporting === 'pdf' ? <span className="animate-spin material-symbols-outlined">sync</span> : <span className="material-symbols-outlined">picture_as_pdf</span>}
             {t('export_pdf')}
-          </button>
-          <button
-            disabled={!!exporting}
+          </Button>
+          <Button
+            isLoading={exporting === 'excel'}
             onClick={() => handleExport('excel')}
-            className="flex-1 md:flex-none h-12 px-6 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-600/20 disabled:opacity-50"
+            icon="table_chart"
+            variant="ghost"
+            className="flex-1 md:flex-none text-green-600 hover:bg-green-50 hover:text-green-800"
           >
-            {exporting === 'excel' ? <span className="animate-spin material-symbols-outlined">sync</span> : <span className="material-symbols-outlined">table_chart</span>}
             {t('export_excel')}
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Scope Selector */}
-      <div className="bg-surface dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700 inline-flex flex-wrap gap-2">
-        {[
-          { id: 'this_month', label: t('this_month') },
-          { id: 'last_3_months', label: t('last_3_months') },
-          { id: 'last_6_months', label: t('last_6_months') },
-          { id: 'year', label: t('year') },
-        ].map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPeriod(p.id)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${period === p.id ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {/* Controls Container */}
+      <Card className="p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+        {/* Scope Selector */}
+        <div className="flex bg-gray-100 dark:bg-gray-900 p-1.5 rounded-xl self-start lg:self-auto w-full lg:w-auto overflow-x-auto custom-scrollbar">
+          {[
+            { id: 'this_month', label: t('this_month') },
+            { id: 'last_3_months', label: t('last_3_months') },
+            { id: 'last_6_months', label: t('last_6_months') },
+            { id: 'year', label: t('year') },
+          ].map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${period === p.id ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-textSecondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-700 overflow-x-auto thin-scrollbar">
-        {[
-          { id: 'overview', label: t('overview'), icon: 'dashboard_customize' },
-          { id: 'expenses', label: t('expenses'), icon: 'payments' },
-          { id: 'income', label: t('income'), icon: 'account_balance_wallet' },
-          { id: 'investments', label: t('investments'), icon: 'show_chart' },
-          { id: 'savings', label: t('savings'), icon: 'savings' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-all whitespace-nowrap font-bold text-sm ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-          >
-            <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        {/* Tabs */}
+        <div className="flex gap-1 overflow-x-auto w-full lg:w-auto justify-start lg:justify-end custom-scrollbar pb-1 lg:pb-0">
+          {[
+            { id: 'overview', label: t('overview'), icon: 'dashboard_customize' },
+            { id: 'expenses', label: t('expenses'), icon: 'payments' },
+            { id: 'income', label: t('income'), icon: 'account_balance_wallet' },
+            { id: 'investments', label: t('investments'), icon: 'show_chart' },
+            { id: 'savings', label: t('savings'), icon: 'savings' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all whitespace-nowrap font-bold text-sm ${activeTab === tab.id ? 'bg-primary/10 text-primary' : 'text-textSecondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </Card>
 
       {/* Content */}
       {reportData && (
@@ -214,58 +225,42 @@ const Reports: React.FC = () => {
             <div className="space-y-8">
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-card border border-slate-100 dark:border-slate-700 shadow-sm group hover:border-primary/30 transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="size-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
-                      <span className="material-symbols-outlined">trending_up</span>
+                {[
+                  { label: 'total_income', value: formatAmount(reportData.summary.totalIncome), icon: 'trending_up', color: 'text-success', bg: 'bg-green-500/10 text-green-500' },
+                  { label: 'total_expenses', value: formatAmount(reportData.summary.totalExpenses), icon: 'trending_down', color: 'text-error', bg: 'bg-red-500/10 text-red-500' },
+                  { label: 'total_savings', value: formatAmount(reportData.summary.totalSavings), icon: 'savings', color: 'text-blue-500', bg: 'bg-blue-500/10 text-blue-500' },
+                  { label: 'net_worth', value: formatAmount(reportData.summary.netWorth), icon: 'account_balance', color: 'text-primary', bg: 'bg-primary/10 text-primary' },
+                ].map((stat, i) => (
+                  <Card key={i} className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className={`size-12 rounded-xl flex items-center justify-center ${stat.bg}`}>
+                        <span className="material-symbols-outlined text-2xl">{stat.icon}</span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('total_income')}</p>
-                  <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{formatAmount(reportData.summary.totalIncome)}</p>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-card border border-slate-100 dark:border-slate-700 shadow-sm group hover:border-primary/30 transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="size-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-                      <span className="material-symbols-outlined">trending_down</span>
-                    </div>
-                  </div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('total_expenses')}</p>
-                  <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{formatAmount(reportData.summary.totalExpenses)}</p>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-card border border-slate-100 dark:border-slate-700 shadow-sm group hover:border-primary/30 transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <span className="material-symbols-outlined">savings</span>
-                    </div>
-                  </div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('total_savings')}</p>
-                  <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{formatAmount(reportData.summary.totalSavings)}</p>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-card border border-primary/20 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-white">
-                      <span className="material-symbols-outlined">account_balance</span>
-                    </div>
-                  </div>
-                  <p className="text-primary text-xs font-bold uppercase tracking-widest">{t('net_worth')}</p>
-                  <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{formatAmount(reportData.summary.netWorth)}</p>
-                </div>
+                    <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t(stat.label)}</p>
+                    <p className={`text-2xl font-black mt-1 ${stat.color === 'text-primary' ? 'text-primary' : 'text-textPrimary dark:text-white'}`}>{stat.value}</p>
+                  </Card>
+                ))}
               </div>
 
               {/* Main Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-surface dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700">
-                  <h3 className="text-lg font-bold mb-8">{t('income_vs_expenses')}</h3>
+                <Card className="p-6">
+                  <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('income_vs_expenses')}</h3>
                   <div className="h-[300px]">
                     <FinoraLineChart data={reportData.charts.monthlyTrend} dataKeys={['income', 'expenses']} height={300} />
                   </div>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700">
-                  <h3 className="text-lg font-bold mb-8">{t('expense_dist')}</h3>
+                </Card>
+                <Card className="p-6">
+                  <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('expense_dist')}</h3>
                   <div className="h-[300px]">
-                    <FinoraPieChart data={reportData.charts.expensesByCategory} nameKey="name" valueKey="value" height={300} />
+                    {reportData.charts.expensesByCategory.length > 0 ? (
+                      <FinoraPieChart data={reportData.charts.expensesByCategory} nameKey="name" valueKey="value" height={300} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-textSecondary">{t('no_data')}</div>
+                    )}
                   </div>
-                </div>
+                </Card>
               </div>
             </div>
           )}
@@ -274,172 +269,184 @@ const Reports: React.FC = () => {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-4">
-                  <div className="bg-surface dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('total_expenses')}</p>
-                    <p className="text-3xl font-black text-red-500 mt-2">{formatAmount(reportData.summary.totalExpenses)}</p>
-                  </div>
-                  <div className="bg-surface dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                    <h4 className="text-sm font-bold mb-4">{t('top_categories')}</h4>
-                    <div className="space-y-3">
+                  <Card className="p-6">
+                    <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t('total_expenses')}</p>
+                    <p className="text-3xl font-black text-error mt-2">{formatAmount(reportData.summary.totalExpenses)}</p>
+                  </Card>
+                  <Card className="p-6 overflow-hidden">
+                    <h4 className="text-sm font-bold mb-4 text-textPrimary dark:text-white">{t('top_categories')}</h4>
+                    <div className="space-y-4">
                       {reportData.charts.expensesByCategory.slice(0, 5).map((cat, i) => (
                         <div key={i} className="flex flex-col gap-1">
-                          <div className="flex justify-between text-xs font-bold">
+                          <div className="flex justify-between text-xs font-bold text-textPrimary dark:text-white">
                             <span>{cat.name}</span>
-                            <span>{((cat.value / reportData.summary.totalExpenses) * 100).toFixed(0)}%</span>
+                            <span>{reportData.summary.totalExpenses > 0 ? ((cat.value / reportData.summary.totalExpenses) * 100).toFixed(0) : 0}%</span>
                           </div>
-                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary" style={{ width: `${(cat.value / reportData.summary.totalExpenses) * 100}%` }} />
+                          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary" style={{ width: `${reportData.summary.totalExpenses > 0 ? (cat.value / reportData.summary.totalExpenses) * 100 : 0}%` }} />
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </Card>
                 </div>
-                <div className="lg:col-span-2 bg-surface dark:bg-slate-800 rounded-card shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                  <table className="w-full text-start border-collapse">
-                    <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 text-slate-400 uppercase font-bold text-[10px] tracking-widest">
-                      <tr>
-                        <th className="px-6 py-4 text-start">{t('date')}</th>
-                        <th className="px-6 py-4 text-start">{t('category')}</th>
-                        <th className="px-6 py-4 text-end">{t('amount')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {reportData.details.expenses.map((exp, i) => (
-                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{formatDate(exp.expenseDate)}</p>
-                            <p className="text-[10px] text-slate-400">{formatTime(exp.expenseDate)}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded-full text-[10px] font-black text-slate-500">
-                              {t(exp.category.toLowerCase())}
-                            </span>
-                            {exp.description && <p className="text-[10px] text-slate-400 mt-1">{exp.description}</p>}
-                          </td>
-                          <td className="px-6 py-4 text-end font-bold text-red-500">{formatAmount(exp.amount)}</td>
+                <Card className="lg:col-span-2 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-start border-collapse">
+                      <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800 text-textSecondary dark:text-gray-400 uppercase font-bold text-[11px] tracking-widest">
+                        <tr>
+                          <th className="px-6 py-4 text-start pl-8">{t('date')}</th>
+                          <th className="px-6 py-4 text-start">{t('category')}</th>
+                          <th className="px-6 py-4 text-end pr-8">{t('amount')}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {reportData.details.expenses.map((exp, i) => (
+                          <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="px-6 py-4 pl-8">
+                              <p className="text-sm font-bold text-textPrimary dark:text-white">{formatDate(exp.expenseDate)}</p>
+                              <p className="text-[10px] text-textSecondary dark:text-gray-400 mt-0.5">{formatTime(exp.expenseDate)}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-[10px] font-bold text-textSecondary dark:text-gray-400 uppercase tracking-wider">
+                                {t(exp.category.toLowerCase())}
+                              </span>
+                              {exp.description && <p className="text-[11px] text-textSecondary dark:text-gray-400 mt-1 max-w-[200px] truncate">{exp.description}</p>}
+                            </td>
+                            <td className="px-6 py-4 pr-8 text-end font-bold text-error">- {formatAmount(exp.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
               </div>
             </div>
           )}
 
           {activeTab === 'income' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-surface dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700">
-                <h3 className="text-lg font-bold mb-6">{t('stability')}</h3>
-                <FinoraBarChart data={reportData.details.incomes.map(i => ({ name: i.sourceName, [t('amount')]: i.amount }))} dataKeys={[t('amount')]} height={300} />
-              </div>
-              <div className="bg-surface dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <table className="w-full text-start border-collapse">
-                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 text-slate-400 uppercase font-bold text-[10px] tracking-widest">
-                    <tr>
-                      <th className="px-6 py-4 text-start">{t('source')}</th>
-                      <th className="px-6 py-4 text-start">{t('recurrence')}</th>
-                      <th className="px-6 py-4 text-end">{t('amount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                    {reportData.details.incomes.map((inc, i) => (
-                      <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="px-6 py-4 text-sm font-bold">{inc.sourceName}</td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-500 capitalize">{inc.recurrence}</td>
-                        <td className="px-6 py-4 text-end font-bold text-green-500">{formatAmount(inc.amount)}</td>
+              <Card className="p-6">
+                <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('stability')}</h3>
+                <div className="h-[300px]">
+                  <FinoraBarChart data={reportData.details.incomes.map(i => ({ name: i.sourceName, [t('amount')]: i.amount }))} dataKeys={[t('amount')]} height={300} />
+                </div>
+              </Card>
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-start border-collapse">
+                    <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800 text-textSecondary dark:text-gray-400 uppercase font-bold text-[11px] tracking-widest">
+                      <tr>
+                        <th className="px-6 py-4 text-start pl-8">{t('source')}</th>
+                        <th className="px-6 py-4 text-start">{t('recurrence')}</th>
+                        <th className="px-6 py-4 text-end pr-8">{t('amount')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {reportData.details.incomes.map((inc, i) => (
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="px-6 py-4 pl-8 text-sm font-bold text-textPrimary dark:text-white">{inc.sourceName}</td>
+                          <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-[10px] font-bold text-textSecondary dark:text-gray-400 uppercase tracking-wider">
+                              {inc.recurrence}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 pr-8 text-end font-bold text-success">+ {formatAmount(inc.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             </div>
           )}
 
           {activeTab === 'investments' && (
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('invested_capital')}</p>
-                  <p className="text-2xl font-black mt-1 text-slate-800 dark:text-white">{formatAmount(reportData.summary.investedCapital)}</p>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('market_value')}</p>
-                  <p className="text-2xl font-black mt-1 text-primary">{formatAmount(reportData.summary.totalInvestments)}</p>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('overall_roi')}</p>
-                  <p className={`text-2xl font-black mt-1 ${reportData.summary.investmentROI >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {reportData.summary.investmentROI.toFixed(2)}%
-                  </p>
-                </div>
+                {[
+                  { label: 'invested_capital', value: formatAmount(reportData.summary.investedCapital), color: 'text-textPrimary dark:text-white', bg: 'bg-gray-100 dark:bg-gray-800' },
+                  { label: 'market_value', value: formatAmount(reportData.summary.totalInvestments), color: 'text-primary', bg: 'bg-primary/10' },
+                  { label: 'overall_roi', value: `${reportData.summary.investmentROI.toFixed(2)}%`, color: reportData.summary.investmentROI >= 0 ? 'text-success' : 'text-error', bg: reportData.summary.investmentROI >= 0 ? 'bg-success/10' : 'bg-error/10' },
+                ].map((stat, i) => (
+                  <Card key={i} className="p-6">
+                    <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t(stat.label)}</p>
+                    <p className={`text-2xl font-black mt-2 ${stat.color}`}>{stat.value}</p>
+                  </Card>
+                ))}
               </div>
 
-              <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <table className="w-full text-start border-collapse">
-                  <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 text-slate-400 uppercase font-bold text-[10px] tracking-widest">
-                    <tr>
-                      <th className="px-6 py-4 text-start">{t('asset')}</th>
-                      <th className="px-6 py-4 text-start">{t('type')}</th>
-                      <th className="px-6 py-4 text-end">{t('buy_price')}</th>
-                      <th className="px-6 py-4 text-end">{t('market_price')}</th>
-                      <th className="px-6 py-4 text-end">{t('value')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                    {reportData.details.investments.map((inv, i) => (
-                      <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-bold text-slate-800 dark:text-white">{inv.assetName}</p>
-                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{inv.symbol}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 rounded text-[10px] uppercase font-bold text-slate-500">
-                            {t(inv.assetType)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-end text-sm text-slate-600 dark:text-slate-400">{formatAmount(inv.buyPriceBase)}</td>
-                        <td className="px-6 py-4 text-end text-sm font-bold text-primary">{formatAmount(inv.currentValueBase)}</td>
-                        <td className="px-6 py-4 text-end font-bold text-primary">{formatAmount(inv.totalValueBase)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'savings' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-surface dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700">
-                <h3 className="text-lg font-bold mb-8">{t('savings_contributions')}</h3>
-                <FinoraAreaChart data={reportData.details.savings.map(s => ({ name: s.savingDate, value: s.amount }))} dataKey="value" height={300} />
-              </div>
-              <div className="space-y-4">
-                <div className="bg-surface dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('total_saved_period')}</p>
-                  <p className="text-3xl font-black text-primary mt-2">{formatAmount(reportData.summary.totalSavings)}</p>
-                </div>
-                <div className="bg-surface dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                  <table className="w-full text-start border-collapse text-xs">
-                    <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 text-slate-400 uppercase font-black text-[10px] tracking-widest">
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-start border-collapse">
+                    <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800 text-textSecondary dark:text-gray-400 uppercase font-bold text-[11px] tracking-widest">
                       <tr>
-                        <th className="px-4 py-3 text-start">{t('date')}</th>
-                        <th className="px-4 py-3 text-start">{t('type')}</th>
-                        <th className="px-4 py-3 text-end">{t('amount')}</th>
+                        <th className="px-6 py-4 text-start pl-8">{t('asset')}</th>
+                        <th className="px-6 py-4 text-start">{t('type')}</th>
+                        <th className="px-6 py-4 text-end">{t('buy_price')}</th>
+                        <th className="px-6 py-4 text-end">{t('market_price')}</th>
+                        <th className="px-6 py-4 text-end pr-8">{t('value')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {reportData.details.savings.map((s, i) => (
-                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(s.savingDate)}</td>
-                          <td className="px-4 py-3 font-bold">{t(s.type)}</td>
-                          <td className="px-4 py-3 text-end font-black text-primary">{formatAmount(s.amount)}</td>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {reportData.details.investments.map((inv, i) => (
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="px-6 py-4 pl-8">
+                            <p className="text-sm font-bold text-textPrimary dark:text-white">{inv.assetName}</p>
+                            <p className="text-[10px] text-textSecondary dark:text-gray-400 uppercase font-bold tracking-wider mt-0.5">{inv.symbol}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-[10px] uppercase font-bold text-textSecondary dark:text-gray-400">
+                              {t(inv.assetType)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-end text-sm text-textSecondary dark:text-gray-400 font-medium">{formatAmount(inv.buyPriceBase)}</td>
+                          <td className="px-6 py-4 text-end text-sm font-bold text-primary">{formatAmount(inv.currentValueBase)}</td>
+                          <td className="px-6 py-4 pr-8 text-end font-bold text-primary">{formatAmount(inv.totalValueBase)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'savings' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="p-6">
+                <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('savings_contributions')}</h3>
+                <div className="h-[300px]">
+                  <FinoraAreaChart data={reportData.details.savings.map(s => ({ name: s.savingDate, value: s.amount }))} dataKey="value" height={300} />
+                </div>
+              </Card>
+              <div className="space-y-4">
+                <Card className="p-6">
+                  <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t('total_saved_period')}</p>
+                  <p className="text-3xl font-black text-primary mt-2">{formatAmount(reportData.summary.totalSavings)}</p>
+                </Card>
+                <Card className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-start border-collapse text-xs">
+                      <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800 text-textSecondary dark:text-gray-400 uppercase font-bold text-[10px] tracking-widest">
+                        <tr>
+                          <th className="px-6 py-4 text-start pl-8">{t('date')}</th>
+                          <th className="px-6 py-4 text-start">{t('type')}</th>
+                          <th className="px-6 py-4 text-end pr-8">{t('amount')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {reportData.details.savings.map((s, i) => (
+                          <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="px-6 py-4 pl-8 text-textSecondary dark:text-gray-400 font-medium">{formatDate(s.savingDate)}</td>
+                            <td className="px-6 py-4 font-bold text-textPrimary dark:text-white">{t(s.type)}</td>
+                            <td className="px-6 py-4 pr-8 text-end font-black text-primary">+ {formatAmount(s.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
               </div>
             </div>
           )}

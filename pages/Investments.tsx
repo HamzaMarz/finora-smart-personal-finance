@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import api from '../services/api';
 import { FinoraLineChart, FinoraPieChart } from '../components/charts/ChartWrappers';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import toast from 'react-hot-toast';
 
 interface Investment {
   id: string;
@@ -25,11 +29,10 @@ interface Investment {
 
 const Investments: React.FC = () => {
   const { t } = useTranslation();
-  const { currency: baseCurrency, language } = useAppStore();
+  const { currency: baseCurrency } = useAppStore();
 
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'closed'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -43,7 +46,7 @@ const Investments: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [fetchingPrice, setFetchingPrice] = useState(false);
 
-  // State للقيم النصية (للسماح بكتابة الفاصلة)
+  // State for text inputs (decimal handling)
   const [inputValues, setInputValues] = useState({
     quantity: '1',
     buyPrice: '0',
@@ -96,9 +99,8 @@ const Investments: React.FC = () => {
       setLoading(true);
       const response = await api.get('/investments');
       setInvestments(response.data);
-      setError(null);
     } catch (err: any) {
-      setError('Failed to fetch investments');
+      toast.error('Failed to fetch investments');
       console.error(err);
     } finally {
       setLoading(false);
@@ -172,14 +174,17 @@ const Investments: React.FC = () => {
     try {
       if (formData.id) {
         await api.put(`/investments/${formData.id}`, formData);
+        toast.success(t('investment_updated'));
       } else {
         await api.post('/investments', formData);
+        toast.success(t('investment_added'));
       }
       setShowModal(false);
       resetForm();
       fetchInvestments();
     } catch (err) {
       console.error('Save failed', err);
+      toast.error('Failed to save investment');
     }
   };
 
@@ -189,11 +194,13 @@ const Investments: React.FC = () => {
         sellPrice: formData.sellPrice,
         closeDate: formData.closeDate
       });
+      toast.success(t('investment_closed'));
       setShowModal(false);
       resetForm();
       fetchInvestments();
     } catch (err) {
       console.error('Close failed', err);
+      toast.error('Failed to close investment');
     }
   };
 
@@ -206,9 +213,6 @@ const Investments: React.FC = () => {
           if (priceRes.data.price) {
             await api.put(`/investments/${inv.id}`, { currentValue: priceRes.data.price });
           }
-          // Respect Alpha Vantage rate limit (5 calls per minute for free tier)
-          // We'll wait 1 second between calls to avoid immediate hammering,
-          // but real rate limiting should be smarter.
           await new Promise(r => setTimeout(r, 1000));
         } catch (err) {
           console.error(`Failed to refresh ${inv.symbol}`, err);
@@ -217,15 +221,18 @@ const Investments: React.FC = () => {
     }
     await fetchInvestments();
     setLoading(false);
+    toast.success(t('prices_updated'));
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm(t('delete_confirm'))) return;
     try {
       await api.delete(`/investments/${id}`);
+      toast.success(t('investment_deleted'));
       fetchInvestments();
     } catch (err) {
       console.error('Delete failed', err);
+      toast.error('Failed to delete investment');
     }
   };
 
@@ -257,7 +264,6 @@ const Investments: React.FC = () => {
   };
 
   const formatAmount = (amount: number, currencyCode: string = baseCurrency) => {
-    // Always use English numbers as requested
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
@@ -270,14 +276,12 @@ const Investments: React.FC = () => {
     return matchesStatus && matchesType;
   });
 
-  // Summary Calculations
   const activeInvestments = investments.filter(i => i.status === 'active');
   const totalInvested = activeInvestments.reduce((sum, i) => sum + i.initialAmount, 0);
   const currentMarketValue = activeInvestments.reduce((sum, i) => sum + (i.currentValue * i.quantity), 0);
   const totalPL = currentMarketValue - totalInvested;
   const totalROI = totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0;
 
-  // Charts Data
   const pieData = [
     { name: t('stocks'), value: investments.filter(i => i.assetType === 'stocks').reduce((sum, i) => sum + i.currentValue * i.quantity, 0) },
     { name: t('crypto'), value: investments.filter(i => i.assetType === 'crypto').reduce((sum, i) => sum + i.currentValue * i.quantity, 0) },
@@ -291,82 +295,89 @@ const Investments: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header */}
+    <div className="space-y-6 pb-20 animate-fade-in relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+          <h1 className="text-2xl font-bold text-textPrimary dark:text-white">
             {t('investments')}
           </h1>
-          <p className="text-slate-400 mt-1">{t('portfolio_dist')}</p>
+          <p className="text-textSecondary dark:text-gray-400 mt-1">{t('portfolio_dist')}</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <button
+          <Button
             onClick={handleRefreshPrices}
             disabled={loading}
-            className="flex-1 md:flex-none h-12 px-6 rounded-xl bg-surface dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            variant="secondary"
+            className="flex-1 md:flex-none"
+            icon={loading ? 'sync' : 'sync'}
+            isLoading={loading}
           >
-            <span className={`material-symbols-outlined ${loading ? 'animate-spin' : ''}`}>sync</span>
             {t('update_price')}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => { resetForm(); setShowModal(true); }}
-            className="flex-1 md:flex-none h-12 px-6 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >    <span className="material-symbols-outlined">add</span>
+            variant="primary"
+            className="flex-1 md:flex-none"
+            icon="add"
+          >
             {t('add_investment')}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-surface dark:bg-slate-800 p-6 rounded-card shadow-sm border border-slate-100 dark:border-slate-700">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('capital_invested')}</p>
-          <p className="text-2xl font-black text-slate-800 dark:text-white mt-1">{formatAmount(totalInvested)}</p>
-        </div>
-        <div className="bg-surface dark:bg-slate-800 p-6 rounded-card shadow-sm border border-slate-100 dark:border-slate-700">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('market_value')}</p>
-          <p className="text-2xl font-black text-primary mt-1">{formatAmount(currentMarketValue)}</p>
-        </div>
-        <div className="bg-surface dark:bg-slate-800 p-6 rounded-card shadow-sm border border-slate-100 dark:border-slate-700">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('profit_loss')}</p>
-          <p className={`text-2xl font-black mt-1 ${totalPL >= 0 ? 'text-success' : 'text-red-500'}`}>
-            {totalPL >= 0 ? '+' : ''}{formatAmount(totalPL)}
-          </p>
-        </div>
-        <div className="bg-surface dark:bg-slate-800 p-6 rounded-card shadow-sm border border-slate-100 dark:border-slate-700">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{t('roi')}</p>
-          <p className={`text-2xl font-black mt-1 ${totalROI >= 0 ? 'text-success' : 'text-red-500'}`}>
-            {totalROI >= 0 ? '+' : ''}{totalROI.toFixed(2)}%
-          </p>
-        </div>
+        {[
+          { label: 'capital_invested', value: formatAmount(totalInvested), color: 'text-textPrimary dark:text-white', icon: 'account_balance_wallet', bg: 'bg-primary/10 text-primary' },
+          { label: 'market_value', value: formatAmount(currentMarketValue), color: 'text-primary', icon: 'monitoring', bg: 'bg-blue-500/10 text-blue-500' },
+          { label: 'profit_loss', value: `${totalPL >= 0 ? '+' : ''}${formatAmount(totalPL)}`, color: totalPL >= 0 ? 'text-success' : 'text-error', icon: totalPL >= 0 ? 'trending_up' : 'trending_down', bg: totalPL >= 0 ? 'bg-success/10 text-success' : 'bg-error/10 text-error' },
+          { label: 'roi', value: `${totalROI >= 0 ? '+' : ''}${totalROI.toFixed(2)}%`, color: totalROI >= 0 ? 'text-success' : 'text-error', icon: 'percent', bg: totalROI >= 0 ? 'bg-success/10 text-success' : 'bg-error/10 text-error' }
+        ].map((stat, i) => (
+          <Card key={i} className="p-6 flex items-center gap-4">
+            <div className={`size-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${stat.bg}`}>
+              <span className="material-symbols-outlined text-[24px]">{stat.icon}</span>
+            </div>
+            <div>
+              <p className="text-textSecondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest">{t(stat.label)}</p>
+              <p className={`text-xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+            </div>
+          </Card>
+        ))}
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-surface dark:bg-slate-800 p-6 rounded-card shadow-sm border border-slate-100 dark:border-slate-700">
-          <h3 className="text-lg font-bold mb-6">{t('asset_performance')}</h3>
+        <Card className="lg:col-span-2 p-6">
+          <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('asset_performance')}</h3>
           <div className="h-[300px]">
-            <FinoraLineChart data={performanceTrend} dataKeys={['value']} />
+            {performanceTrend.length > 0 ? (
+              <FinoraLineChart data={performanceTrend} dataKeys={['value']} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-textSecondary">{t('no_data')}</div>
+            )}
           </div>
-        </div>
-        <div className="bg-surface dark:bg-slate-800 p-6 rounded-card shadow-sm border border-slate-100 dark:border-slate-700">
-          <h3 className="text-lg font-bold mb-6">{t('portfolio_dist')}</h3>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-lg font-bold mb-6 text-textPrimary dark:text-white">{t('portfolio_dist')}</h3>
           <div className="h-[300px]">
-            <FinoraPieChart data={pieData} nameKey="name" valueKey="value" />
+            {pieData.length > 0 ? (
+              <FinoraPieChart data={pieData} nameKey="name" valueKey="value" />
+            ) : (
+              <div className="flex items-center justify-center h-full text-textSecondary">{t('no_data')}</div>
+            )}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Filters & List */}
-      <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
-          <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+      <Card className="overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex flex-wrap justify-between items-center gap-4 bg-gray-50/50 dark:bg-gray-800/50">
+          <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
             {(['all', 'active', 'closed'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === s ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-400'}`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === s ? 'bg-white dark:bg-gray-700 shadow-sm text-primary' : 'text-textSecondary dark:text-gray-400'}`}
               >
                 {t(s)}
               </button>
@@ -375,7 +386,7 @@ const Investments: React.FC = () => {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+            className="h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none text-textPrimary dark:text-white cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <option value="all">{t('all')}</option>
             <option value="stocks">{t('stocks')}</option>
@@ -387,62 +398,72 @@ const Investments: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-start border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 text-slate-400 uppercase font-black text-[10px] tracking-widest">
+            <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-800 text-textSecondary dark:text-gray-400 uppercase font-bold text-[11px] tracking-widest">
               <tr>
-                <th className="px-6 py-4 text-start">{t('name')}</th>
+                <th className="px-6 py-4 text-start pl-8">{t('name')}</th>
                 <th className="px-6 py-4 text-start">{t('ticker')}</th>
                 <th className="px-6 py-4 text-start">{t('buy_price')}</th>
                 <th className="px-6 py-4 text-start">{t('market_price')}</th>
                 <th className="px-6 py-4 text-start">{t('profit_loss')}</th>
-                <th className="px-6 py-4 text-end">{t('action')}</th>
+                <th className="px-6 py-4 text-end pr-8">{t('action')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {filteredInvestments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                    {t('no_records_found')}
+                  <td colSpan={6} className="px-6 py-16 text-center text-textSecondary dark:text-gray-400">
+                    <div className="flex flex-col items-center gap-3">
+                      <span className="material-symbols-outlined text-4xl opacity-50">money_off</span>
+                      <p className="font-medium">{t('no_records_found')}</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredInvestments.map((inv) => {
-                  let rowClass = "group hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
-                  if (inv.status === 'closed') {
-                    rowClass = inv.profitLoss >= 0
-                      ? "group bg-green-50/60 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border-l-4 border-green-500"
-                      : "group bg-red-50/60 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors border-l-4 border-red-500";
-                  } else {
-                    rowClass += " border-l-4 border-transparent";
-                  }
+                  let rowClass = "group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors";
+                  // Add subtle border for closed/profit/loss visual
+                  const profitClass = inv.profitLoss >= 0 ? "text-success" : "text-error";
 
                   return (
                     <tr key={inv.id} className={rowClass}>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-slate-800 dark:text-white">{inv.assetName}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 uppercase font-bold tracking-wider">{t(inv.assetType)}</p>
+                      <td className="px-6 py-5 pl-8">
+                        <div className="flex items-center gap-3">
+                          <div className={`size-10 rounded-xl flex items-center justify-center ${inv.status === 'closed' ? 'bg-gray-100 dark:bg-gray-800 text-gray-400' : 'bg-primary/10 text-primary'}`}>
+                            <span className="material-symbols-outlined text-[20px]">
+                              {inv.assetType === 'crypto' ? 'currency_bitcoin' : inv.assetType === 'forex' ? 'currency_exchange' : inv.assetType === 'stocks' ? 'show_chart' : 'category'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-textPrimary dark:text-white text-base">{inv.assetName}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-[10px] text-textSecondary dark:text-gray-400 font-bold uppercase tracking-wider">{t(inv.assetType)}</p>
+                              {inv.status === 'closed' && <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-[10px] rounded font-bold text-gray-500">CLOSED</span>}
+                            </div>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-900 rounded text-[10px] font-black text-slate-500">
+                      <td className="px-6 py-5">
+                        <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold text-textSecondary dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                           {inv.symbol || '-'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium">{formatAmount(inv.buyPrice, inv.currency)}</p>
-                        <p className="text-[10px] text-slate-400" lang="en">× {inv.quantity}</p>
+                      <td className="px-6 py-5">
+                        <p className="text-sm font-medium text-textPrimary dark:text-white">{formatAmount(inv.buyPrice, inv.currency)}</p>
+                        <p className="text-[11px] text-textSecondary dark:text-gray-400 font-medium">× {inv.quantity}</p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-5">
                         <p className="text-sm font-bold text-primary">{formatAmount(inv.currentValue, inv.currency)}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className={`text-sm font-bold ${inv.profitLoss >= 0 ? 'text-success' : 'text-red-500'}`}>
+                      <td className="px-6 py-5">
+                        <p className={`text-sm font-bold ${profitClass}`}>
                           {inv.profitLoss >= 0 ? '+' : ''}{formatAmount(inv.profitLoss, inv.currency)}
                         </p>
-                        <p className={`text-[10px] font-bold ${inv.roi >= 0 ? 'text-success' : 'text-red-500'}`}>
+                        <p className={`text-[11px] font-bold ${inv.roi >= 0 ? 'text-success' : 'text-error'}`}>
                           {inv.roi >= 0 ? '+' : ''}{inv.roi.toFixed(2)}%
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-end">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-6 py-5 pr-8">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           {inv.status === 'active' && (
                             <button
                               onClick={() => {
@@ -451,7 +472,7 @@ const Investments: React.FC = () => {
                                 setIsClosing(true);
                                 setShowModal(true);
                               }}
-                              className="size-9 rounded-xl flex items-center justify-center hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-400 hover:text-orange-500 transition-colors opacity-0 group-hover:opacity-100"
+                              className="size-9 rounded-xl flex items-center justify-center hover:bg-orange-50 dark:hover:bg-orange-900/20 text-textSecondary dark:text-gray-400 hover:text-orange-500 transition-colors"
                               title={t('close_investment')}
                             >
                               <span className="material-symbols-outlined text-[18px]">lock</span>
@@ -459,7 +480,7 @@ const Investments: React.FC = () => {
                           )}
                           <button
                             onClick={() => handleDelete(inv.id)}
-                            className="size-9 rounded-xl flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                            className="size-9 rounded-xl flex items-center justify-center hover:bg-error/10 text-textSecondary dark:text-gray-400 hover:text-error transition-colors"
                           >
                             <span className="material-symbols-outlined text-[18px]">delete</span>
                           </button>
@@ -472,20 +493,22 @@ const Investments: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)} />
-          <div className="bg-surface dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl z-10 animate-slide-up overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)} />
+          <Card className="w-full max-w-lg z-10 animate-scale-up overflow-hidden max-h-[90vh] flex flex-col" onClick={(e) => e?.stopPropagation()}>
             {isClosing ? (
-              <div className="p-6 space-y-4">
-                <h3 className="text-xl font-bold">{t('close_investment')}</h3>
-                <p className="text-sm text-slate-400">{formData.assetName}</p>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-slate-400">{t('sell_price')}</label>
+              <div className="flex flex-col h-full">
+                <div className="p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+                  <h3 className="text-xl font-bold text-textPrimary dark:text-white">{t('close_investment')}</h3>
+                  <p className="text-sm text-textSecondary dark:text-gray-400 mt-1">{formData.assetName}</p>
+                </div>
+                <div className="p-6 space-y-5 overflow-y-auto">
+                  <div>
+                    <label className="text-xs font-bold uppercase text-textSecondary mb-2 block">{t('sell_price')}</label>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -493,11 +516,8 @@ const Investments: React.FC = () => {
                       value={inputValues.sellPrice}
                       onChange={(e) => {
                         let value = e.target.value;
-                        // تحويل الأرقام العربية إلى إنجليزية
                         value = value.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
-                        // السماح فقط بالأرقام والفاصلة
                         value = value.replace(/[^0-9.]/g, '');
-                        // السماح بفاصلة واحدة فقط
                         const parts = value.split('.');
                         if (parts.length > 2) {
                           value = parts[0] + '.' + parts.slice(1).join('');
@@ -506,46 +526,45 @@ const Investments: React.FC = () => {
                         const numValue = value === '' || value === '.' ? 0 : parseFloat(value) || 0;
                         setFormData({ ...formData, sellPrice: numValue });
                       }}
-                      className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-bold"
+                      className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-lg"
                       style={{ direction: 'ltr' }}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-slate-400">{t('sell_date')}</label>
-                    <input
-                      type="date"
-                      value={formData.closeDate}
-                      onChange={(e) => setFormData({ ...formData, closeDate: e.target.value })}
-                      className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-bold"
-                    />
-                  </div>
+
+                  <Input
+                    label={t('sell_date')}
+                    type="date"
+                    value={formData.closeDate}
+                    onChange={(e) => setFormData({ ...formData, closeDate: e.target.value })}
+                  />
                 </div>
-                <div className="flex gap-3 pt-4">
-                  <button onClick={() => setShowModal(false)} className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">{t('cancel')}</button>
-                  <button onClick={handleCloseInvestment} className="flex-1 h-12 rounded-xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">{t('save')}</button>
+                <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex gap-3">
+                  <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1">{t('cancel')}</Button>
+                  <Button variant="primary" onClick={handleCloseInvestment} className="flex-1">{t('save')}</Button>
                 </div>
               </div>
             ) : (
-              <>
-                <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">{t('add_investment')}</h3>
-                    <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-500 transition-all">
-                      <span className="material-symbols-outlined">close</span>
-                    </button>
-                  </div>
-                  {/* Steps Indicator */}
-                  <div className="flex gap-2 mt-4">
+              <div className="flex flex-col h-full">
+                <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                  <h3 className="text-xl font-bold text-textPrimary dark:text-white">{t('add_investment')}</h3>
+                  <button onClick={() => setShowModal(false)} className="size-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-textSecondary dark:text-gray-400 transition-colors">
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                {/* Steps */}
+                <div className="px-6 pt-4 pb-2">
+                  <div className="flex gap-2">
                     {[1, 2, 3].map(s => (
-                      <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${modalStep >= s ? 'bg-primary' : 'bg-slate-100 dark:bg-slate-700'}`} />
+                      <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${modalStep >= s ? 'bg-primary' : 'bg-gray-100 dark:bg-gray-700'}`} />
                     ))}
                   </div>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto custom-scrollbar">
                   {modalStep === 1 && (
                     <div className="space-y-3">
-                      <p className="text-sm font-bold text-slate-400 mb-4">{t('select_market')}</p>
+                      <p className="text-sm font-bold text-textSecondary dark:text-gray-400 mb-4 uppercase tracking-wider">{t('select_market')}</p>
                       {(['stocks', 'crypto', 'forex', 'manual'] as const).map((type) => (
                         <button
                           key={type}
@@ -553,37 +572,91 @@ const Investments: React.FC = () => {
                             setFormData({ ...formData, assetType: type });
                             if (type === 'manual') setModalStep(3); else setModalStep(2);
                           }}
-                          className="w-full p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-between group"
+                          className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-between group bg-white dark:bg-gray-800/50"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="size-10 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
-                              <span className="material-symbols-outlined">
+                            <div className="size-12 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-textSecondary dark:text-gray-400 group-hover:text-primary transition-colors">
+                              <span className="material-symbols-outlined text-2xl">
                                 {type === 'stocks' ? 'show_chart' : type === 'crypto' ? 'currency_bitcoin' : type === 'forex' ? 'currency_exchange' : 'edit_square'}
                               </span>
                             </div>
-                            <span className="font-bold text-slate-700 dark:text-slate-200">{t(type === 'manual' ? 'manual_asset' : type)}</span>
+                            <div className="text-left">
+                              <span className="block font-bold text-textPrimary dark:text-white text-lg">{t(type === 'manual' ? 'manual_asset' : type)}</span>
+                              <span className="text-xs text-textSecondary dark:text-gray-400">
+                                {type === 'manual' ? 'Custom Entry' : `Search ${type} market`}
+                              </span>
+                            </div>
                           </div>
-                          <span className="material-symbols-outlined text-slate-300 group-hover:text-primary">navigate_next</span>
+                          <span className="material-symbols-outlined text-gray-300 group-hover:text-primary">navigate_next</span>
                         </button>
                       ))}
                     </div>
                   )}
 
                   {modalStep === 2 && (
-                    <div className="space-y-4">
-                      {/* Quick Select for Crypto/Forex */}
-                      {(formData.assetType === 'crypto' || formData.assetType === 'forex') && (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                            {formData.assetType === 'crypto' ? 'Popular Cryptocurrencies' : 'Popular Forex Pairs'}
-                          </p>
-                          <div className="max-h-[200px] overflow-y-auto space-y-1 pr-2 thin-scrollbar">
+                    <div className="space-y-5">
+                      {/* Search Bar */}
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            autoFocus
+                            type="text"
+                            placeholder={t('search_asset')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            className="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-textPrimary dark:text-white"
+                          />
+                          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-textSecondary">search</span>
+                        </div>
+                        <Button
+                          onClick={handleSearch}
+                          disabled={searching}
+                          isLoading={searching}
+                          icon="search"
+                        >
+                          {t('search')}
+                        </Button>
+                      </div>
+
+                      <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                        {searchError && (
+                          <div className="p-4 bg-error/10 border border-error/20 rounded-xl text-error text-xs">
+                            <p className="font-bold mb-1">Search Error:</p>
+                            <p>{searchError}</p>
+                          </div>
+                        )}
+
+                        {searchResults.map((asset, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleSelectAsset(asset)}
+                            className="w-full p-3 rounded-xl border border-transparent hover:border-primary/20 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-start transition-all"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-bold text-sm text-textPrimary dark:text-white uppercase">{asset.symbol}</p>
+                                <p className="text-xs text-textSecondary dark:text-gray-400 truncate max-w-[200px]">{asset.name}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-textSecondary dark:text-gray-400 font-bold">{asset.type}</span>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+
+                        {/* Quick Select for Crypto/Forex */}
+                        {(formData.assetType === 'crypto' || formData.assetType === 'forex') && !searchQuery && (
+                          <div className="space-y-3 pt-2">
+                            <p className="text-[10px] font-black uppercase text-textSecondary tracking-widest">
+                              {formData.assetType === 'crypto' ? 'Popular Cryptocurrencies' : 'Popular Forex Pairs'}
+                            </p>
                             {loadingAssets ? (
-                              <div className="text-center py-4 text-slate-400 text-sm">Loading...</div>
+                              <div className="flex justify-center"><span className="animate-spin material-symbols-outlined text-gray-300">progress_activity</span></div>
                             ) : (
                               <div className="grid grid-cols-2 gap-2">
                                 {(formData.assetType === 'crypto' ? supportedCryptos : supportedForex)
-                                  .slice(0, 20)
+                                  .slice(0, 10)
                                   .map((asset: any) => (
                                     <button
                                       key={asset.symbol}
@@ -594,116 +667,63 @@ const Investments: React.FC = () => {
                                         type: formData.assetType === 'crypto' ? 'Digital Currency' : 'Forex',
                                         currency: asset.currency || 'USD'
                                       })}
-                                      className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-primary hover:text-white transition-all text-left"
+                                      className="px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-transparent hover:border-primary/30 hover:bg-primary/5 text-xs font-bold text-textSecondary hover:text-primary transition-all text-left"
                                     >
-                                      <div className="font-black">{asset.symbol}</div>
+                                      <div className="font-black text-textPrimary dark:text-white uppercase">{asset.symbol}</div>
                                       <div className="text-[10px] opacity-70 truncate">{asset.name}</div>
                                     </button>
                                   ))}
                               </div>
                             )}
                           </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <input
-                            autoFocus
-                            type="text"
-                            placeholder={t('search_asset')}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="w-full h-12 px-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                          />
-                          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                        </div>
-                        <button
-                          onClick={handleSearch}
-                          disabled={searching}
-                          className="h-12 px-6 rounded-xl bg-primary text-white font-bold hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
-                        >
-                          {searching ? (
-                            <>
-                              <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
-                              <span>...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="material-symbols-outlined text-[20px]">search</span>
-                              <span>{t('search_asset')}</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-
-                      <div className="max-h-[300px] overflow-y-auto space-y-1 pr-2 thin-scrollbar">
-                        {searchError && (
-                          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-500 text-xs">
-                            <p className="font-bold mb-1">Search Error:</p>
-                            <p>{searchError}</p>
-                            <p className="mt-2 text-[10px] opacity-70">Hint: Check your ALPHA_VANTAGE_API_KEY in .env file.</p>
-                          </div>
                         )}
-                        {searchResults.map((asset, i) => (
-                          <button
-                            key={i}
-                            onClick={() => handleSelectAsset(asset)}
-                            className="w-full p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 text-start transition-all"
-                          >
-                            <p className="font-bold text-sm text-slate-800 dark:text-white uppercase">{asset.symbol}</p>
-                            <p className="text-xs text-slate-400 truncate">{asset.name}</p>
-                            <p className="text-[10px] text-primary/60 font-medium">Market: {asset.type} • {asset.region}</p>
-                          </button>
-                        ))}
 
                         {/* Direct Entry Option */}
                         {searchQuery.length >= 2 && !searching && (
                           <div className="pt-2">
                             <button
                               onClick={() => handleSelectAsset({ symbol: searchQuery.toUpperCase(), name: searchQuery.toUpperCase(), type: formData.assetType === 'crypto' ? 'Digital Currency' : formData.assetType === 'forex' ? 'Forex' : 'Equity', currency: 'USD' })}
-                              className="w-full p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-primary hover:bg-primary/5 transition-all text-start group"
+                              className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary/5 transition-all text-start group"
                             >
                               <div className="flex items-center gap-3">
                                 <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
                                   <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
                                 </div>
                                 <div>
-                                  <p className="text-xs font-black text-slate-800 dark:text-white uppercase">Use "{searchQuery}" as symbol</p>
-                                  <p className="text-[10px] text-slate-400">Proceed directly</p>
+                                  <p className="text-xs font-black text-textPrimary dark:text-white uppercase">Use "{searchQuery}" as symbol</p>
+                                  <p className="text-[10px] text-textSecondary dark:text-gray-400">Proceed directly without search results</p>
                                 </div>
                               </div>
                             </button>
                           </div>
                         )}
-
-                        {searchQuery && !searching && searchResults.length === 0 && !searchError && (
-                          <div className="p-6 text-center">
-                            <p className="text-slate-400 italic text-sm">{t('no_records_found')}</p>
-                          </div>
-                        )}
                       </div>
-                      <button onClick={() => setModalStep(1)} className="w-full text-xs text-slate-400 font-bold hover:text-primary transition-all uppercase tracking-widest">{t('cancel')}</button>
+                      <button onClick={() => setModalStep(1)} className="w-full text-xs text-textSecondary font-bold hover:text-primary transition-all uppercase tracking-widest">{t('cancel')}</button>
                     </div>
                   )}
 
                   {modalStep === 3 && (
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                       {selectedAsset && (
-                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-xs font-black text-primary uppercase">{selectedAsset.symbol}</p>
-                            <p className="text-xs text-slate-500 font-medium">{selectedAsset.name}</p>
+                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-lg bg-white dark:bg-gray-900 flex items-center justify-center text-primary shadow-sm">
+                              <span className="material-symbols-outlined">
+                                {formData.assetType === 'crypto' ? 'currency_bitcoin' : 'show_chart'}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-textPrimary dark:text-white uppercase">{selectedAsset.symbol}</p>
+                              <p className="text-xs text-textSecondary truncate max-w-[200px]">{selectedAsset.name}</p>
+                            </div>
                           </div>
-                          <button type="button" onClick={() => setModalStep(2)} className="text-[10px] font-black uppercase text-primary underline">Change</button>
+                          <button type="button" onClick={() => setModalStep(2)} className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 text-[10px] font-bold uppercase text-primary border border-primary/20 hover:bg-primary hover:text-white transition-colors">Change</button>
                         </div>
                       )}
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase text-slate-400">{t('quantity')}</label>
+                          <label className="text-xs font-bold uppercase text-textSecondary mb-2 block">{t('quantity')}</label>
                           <input
                             required
                             type="text"
@@ -712,11 +732,8 @@ const Investments: React.FC = () => {
                             value={inputValues.quantity}
                             onChange={(e) => {
                               let value = e.target.value;
-                              // تحويل الأرقام العربية إلى إنجليزية
                               value = value.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
-                              // السماح فقط بالأرقام والفاصلة
                               value = value.replace(/[^0-9.]/g, '');
-                              // السماح بفاصلة واحدة فقط
                               const parts = value.split('.');
                               if (parts.length > 2) {
                                 value = parts[0] + '.' + parts.slice(1).join('');
@@ -725,12 +742,12 @@ const Investments: React.FC = () => {
                               const numValue = value === '' || value === '.' ? 0 : parseFloat(value) || 0;
                               setFormData({ ...formData, quantity: numValue });
                             }}
-                            className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-bold"
+                            className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-lg text-textPrimary dark:text-white"
                             style={{ direction: 'ltr' }}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase text-slate-400">{t('buy_price')}</label>
+                          <label className="text-xs font-bold uppercase text-textSecondary mb-2 block">{t('buy_price')}</label>
                           <div className="relative">
                             <input
                               required
@@ -740,11 +757,8 @@ const Investments: React.FC = () => {
                               value={inputValues.buyPrice}
                               onChange={(e) => {
                                 let value = e.target.value;
-                                // تحويل الأرقام العربية إلى إنجليزية
                                 value = value.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
-                                // السماح فقط بالأرقام والفاصلة
                                 value = value.replace(/[^0-9.]/g, '');
-                                // السماح بفاصلة واحدة فقط
                                 const parts = value.split('.');
                                 if (parts.length > 2) {
                                   value = parts[0] + '.' + parts.slice(1).join('');
@@ -753,10 +767,14 @@ const Investments: React.FC = () => {
                                 const numValue = value === '' || value === '.' ? 0 : parseFloat(value) || 0;
                                 setFormData({ ...formData, buyPrice: numValue, currentValue: numValue });
                               }}
-                              className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-bold"
+                              className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-lg text-textPrimary dark:text-white"
                               style={{ direction: 'ltr' }}
                             />
-                            {fetchingPrice && <span className="absolute right-3 top-3 text-[10px] text-primary animate-pulse font-bold">FETCHING...</span>}
+                            {fetchingPrice && (
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-primary animate-pulse font-bold bg-primary/10 px-2 py-0.5 rounded">
+                                ADJUSTING...
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -764,69 +782,54 @@ const Investments: React.FC = () => {
                       {/* Currency Selector for Crypto/Forex */}
                       {(formData.assetType === 'crypto' || formData.assetType === 'forex') && (
                         <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase text-slate-400">{t('currency')}</label>
+                          <label className="text-xs font-bold uppercase text-textSecondary">{t('currency')}</label>
                           <select
                             value={formData.currency}
                             onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                            className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-bold"
+                            className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-primary transition-all font-bold text-textPrimary dark:text-white appearance-none cursor-pointer"
                           >
-                            <option value="USD">USD - US Dollar</option>
-                            <option value="ILS">ILS - Israeli Shekel</option>
-                            <option value="JOD">JOD - Jordanian Dinar</option>
-                            <option value="SAR">SAR - Saudi Riyal</option>
-                            <option value="AED">AED - UAE Dirham</option>
-                            <option value="EUR">EUR - Euro</option>
-                            <option value="GBP">GBP - British Pound</option>
-                            <option value="JPY">JPY - Japanese Yen</option>
-                            <option value="AUD">AUD - Australian Dollar</option>
-                            <option value="CAD">CAD - Canadian Dollar</option>
-                            <option value="CHF">CHF - Swiss Franc</option>
+                            {['USD', 'ILS', 'JOD', 'SAR', 'AED', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF'].map(c =>
+                              <option key={c} value={c}>{c}</option>
+                            )}
                           </select>
                         </div>
                       )}
 
                       {formData.assetType === 'manual' && (
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold uppercase text-slate-400">{t('name')}</label>
-                          <input
-                            required
-                            type="text"
-                            value={formData.assetName}
-                            onChange={(e) => setFormData({ ...formData, assetName: e.target.value })}
-                            className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-medium"
-                          />
-                        </div>
+                        <Input
+                          label={t('name')}
+                          required
+                          value={formData.assetName}
+                          onChange={(e) => setFormData({ ...formData, assetName: e.target.value })}
+                        />
                       )}
 
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase text-slate-400">{t('purchase_date')}</label>
-                        <input
-                          type="date"
-                          value={formData.purchaseDate}
-                          onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                          className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-bold"
-                        />
-                      </div>
+                      <Input
+                        label={t('purchase_date')}
+                        type="date"
+                        value={formData.purchaseDate}
+                        onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                      />
 
                       <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase text-slate-400">{t('notes')}</label>
+                        <label className="text-xs font-bold uppercase text-textSecondary">{t('notes')}</label>
                         <textarea
                           value={formData.notes}
                           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                          className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent outline-none focus:border-primary transition-all font-medium min-h-[80px]"
+                          className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium min-h-[80px] text-textPrimary dark:text-white"
                         />
                       </div>
 
-                      <div className="flex gap-3 pt-4">
-                        <button type="button" onClick={() => setModalStep(selectedAsset ? 2 : 1)} className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">{t('back')}</button>
-                        <button type="submit" className="flex-[2] h-12 rounded-xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">{t('save')}</button>
+                      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <Button type="button" variant="ghost" onClick={() => setModalStep(selectedAsset ? 2 : 1)} className="flex-1">{t('back')}</Button>
+                        <Button type="submit" variant="primary" className="flex-[2]">{t('save')}</Button>
                       </div>
                     </form>
                   )}
                 </div>
-              </>
+              </div>
             )}
-          </div>
+          </Card>
         </div>
       )}
     </div>

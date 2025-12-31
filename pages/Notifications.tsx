@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+import { useNotificationStore } from '../store/useNotificationStore';
 
 interface Notification {
   id: string;
@@ -13,9 +14,17 @@ interface Notification {
 
 const Notifications: React.FC = () => {
   const { t } = useTranslation();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const {
+    notifications,
+    loading,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteAll
+  } = useNotificationStore();
+
   const [filter, setFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
 
   const categories = [
     { id: 'all', label: t('all'), icon: 'notifications', color: 'primary' },
@@ -29,60 +38,8 @@ const Notifications: React.FC = () => {
   ];
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications(filter);
   }, [filter]);
-
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`/notifications?category=${filter}`);
-      setNotifications(response.data);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (id: string) => {
-    try {
-      await api.put(`/notifications/${id}/read`);
-      setNotifications(notifications.map(n =>
-        n.id === id ? { ...n, isRead: true } : n
-      ));
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await api.put('/notifications/mark-all-read');
-      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
-    }
-  };
-
-  const deleteNotification = async (id: string) => {
-    try {
-      await api.delete(`/notifications/${id}`);
-      setNotifications(notifications.filter(n => n.id !== id));
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
-    }
-  };
-
-  const deleteAll = async () => {
-    if (!confirm(t('delete_all_confirm'))) return;
-
-    try {
-      await api.delete('/notifications');
-      setNotifications([]);
-    } catch (error) {
-      console.error('Failed to delete all notifications:', error);
-    }
-  };
 
   const getCategoryColor = (category: string) => {
     const cat = categories.find(c => c.id === category);
@@ -218,12 +175,12 @@ const Notifications: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-lg">{notification.title}</h3>
+                      <h3 className="font-bold text-xl text-slate-900 dark:text-white">{t(notification.title) || notification.title}</h3>
                       {!notification.isRead && (
-                        <span className="size-2.5 bg-primary rounded-full flex-shrink-0"></span>
+                        <span className="size-3 bg-primary rounded-full flex-shrink-0"></span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400 whitespace-nowrap">
+                    <span className="text-sm text-slate-500 font-medium whitespace-nowrap">
                       {new Date(notification.createdAt).toLocaleDateString(t('language') === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -233,7 +190,21 @@ const Notifications: React.FC = () => {
                     </span>
                   </div>
 
-                  <p className="text-slate-600 dark:text-slate-400 mb-3">{notification.message}</p>
+                  <p className="text-slate-600 dark:text-slate-400 mb-3">
+                    {(() => {
+                      try {
+                        if (notification.message.trim().startsWith('{')) {
+                          const parsed = JSON.parse(notification.message);
+                          if (parsed.key) {
+                            return t(parsed.key, parsed.params);
+                          }
+                        }
+                        return notification.message;
+                      } catch (e) {
+                        return notification.message;
+                      }
+                    })()}
+                  </p>
 
                   <div className="flex items-center gap-2">
                     <span

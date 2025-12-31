@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../services/api';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import toast from 'react-hot-toast';
 
 const CurrencySettings = () => {
   const { t } = useTranslation();
@@ -20,12 +24,11 @@ const CurrencySettings = () => {
       if (Array.isArray(res.data)) {
         setRates(res.data);
       } else {
-        console.error('Expected array of rates, got:', res.data);
         setRates([]);
       }
     } catch (err: any) {
       console.error('Failed to fetch rates', err);
-      // If we get a 401, the interceptor will handle redirect
+      if (err.response?.status !== 401) toast.error('Failed to load exchange rates');
       setRates([]);
     } finally {
       setLoading(false);
@@ -42,12 +45,12 @@ const CurrencySettings = () => {
       const res = await api.post('/api/rates/sync');
       if (res.data.success && Array.isArray(res.data.rates)) {
         setRates(res.data.rates);
-        alert(t('sync_success'));
+        toast.success(t('sync_success'));
       } else {
         throw new Error('Invalid response format');
       }
     } catch (err: any) {
-      alert(err.message || t('sync_failed'));
+      toast.error(err.message || t('sync_failed'));
     } finally {
       setSyncing(false);
     }
@@ -55,26 +58,21 @@ const CurrencySettings = () => {
 
   const handleUpdateBaseCurrency = async (currency: string) => {
     try {
-      // Send only the necessary fields to avoid potential serialization issues
       await api.put('/user/profile', {
         name: user?.name,
         avatar: user?.avatar,
         baseCurrency: currency
       });
 
-      // Update local store
       const authState = useAuthStore.getState();
       if (user) {
         login({ ...user, baseCurrency: currency }, authState.token || '');
         setCurrency(currency);
-        alert(t('update_base_success', { currency }));
-
-        // RE-FETCH rates immediately so the table updates to the new base
+        toast.success(t('update_base_success', { currency }));
         fetchRates();
       }
     } catch (err) {
-      console.error(err);
-      alert(t('update_base_failed'));
+      toast.error(t('update_base_failed'));
     }
   };
 
@@ -84,104 +82,108 @@ const CurrencySettings = () => {
       await api.put(`/api/rates/${editRate.code}`, { rate: parseFloat(editRate.rate) });
       setEditRate(null);
       fetchRates();
+      toast.success('Rate updated');
     } catch (err) {
-      alert(t('update_rate_failed'));
+      toast.error(t('update_rate_failed'));
     }
   };
 
   return (
-    <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm p-6 border border-slate-100 dark:border-slate-700">
+    <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-bold text-lg">{t('currency_settings')}</h3>
-        <button
+        <h3 className="font-bold text-lg text-textPrimary dark:text-white">{t('currency_settings')}</h3>
+        <Button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 text-sm text-primary font-bold hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          variant="ghost"
+          isLoading={syncing}
+          icon="sync"
+          className="text-primary hover:bg-primary/10"
         >
-          <span className={`material-symbols-outlined text-[18px] ${syncing ? 'animate-spin' : ''}`}>sync</span>
-          {syncing ? t('syncing_dots') : t('sync_rates')}
-        </button>
+          {t('sync_rates')}
+        </Button>
       </div>
 
       <div className="space-y-6">
-        {/* Base Currency */}
         <div>
-          <label className="block text-sm font-bold mb-2">{t('base_currency')}</label>
-          <select
-            value={user?.baseCurrency || 'USD'}
-            onChange={(e) => handleUpdateBaseCurrency(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="JPY">JPY (¥) - Japanese Yen</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="AUD">AUD ($) - Australian Dollar</option>
-            <option value="ILS">ILS (₪) - Shekel</option>
-            <option value="JOD">JOD (د.أ) - Jordanian Dinar</option>
-            <option value="KWD">KWD (د.ك) - Kuwaiti Dinar</option>
-            <option value="BHD">BHD (د.ب) - Bahraini Dinar</option>
-            <option value="OMR">OMR (ر.ع) - Omani Rial</option>
-            <option value="QAR">QAR (ر.ق) - Qatari Rial</option>
-            <option value="SAR">SAR (﷼) - Saudi Rial</option>
-            <option value="AED">AED (د.إ) - UAE Dirham</option>
-          </select>
-          <p className="text-xs text-slate-400 mt-1">{t('all_data_converted')}</p>
+          <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">{t('base_currency')}</label>
+          <div className="relative">
+            <select
+              value={user?.baseCurrency || 'USD'}
+              onChange={(e) => handleUpdateBaseCurrency(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-primary focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all appearance-none cursor-pointer font-bold text-textPrimary dark:text-white"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="JPY">JPY (¥) - Japanese Yen</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="AUD">AUD ($) - Australian Dollar</option>
+              <option value="ILS">ILS (₪) - Shekel</option>
+              <option value="JOD">JOD (د.أ) - Jordanian Dinar</option>
+              <option value="KWD">KWD (د.ك) - Kuwaiti Dinar</option>
+              <option value="BHD">BHD (د.ب) - Bahraini Dinar</option>
+              <option value="OMR">OMR (ر.ع) - Omani Rial</option>
+              <option value="QAR">QAR (ر.ق) - Qatari Rial</option>
+              <option value="SAR">SAR (﷼) - Saudi Rial</option>
+              <option value="AED">AED (د.إ) - UAE Dirham</option>
+            </select>
+            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-textSecondary">expand_more</span>
+          </div>
+          <p className="text-xs text-textSecondary dark:text-gray-400 mt-2 font-medium bg-secondary/10 text-secondary px-3 py-1 rounded-lg inline-block">{t('all_data_converted')}</p>
         </div>
 
-        {/* Exchange Rates Table */}
         <div>
-          <label className="block text-sm font-bold mb-2">{t('exchange_rate')} ({t('base_currency')}: {user?.baseCurrency || 'USD'})</label>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+          <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-3">{t('exchange_rate')} ({t('base_currency')}: {user?.baseCurrency || 'USD'})</label>
+          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-900">
+              <thead className="bg-gray-50 dark:bg-gray-800/80 text-textSecondary dark:text-gray-400 uppercase font-bold text-[10px] tracking-widest">
                 <tr>
-                  <th className="px-4 py-3">{t('currency')}</th>
-                  <th className="px-4 py-3">{t('exchange_rate')}</th>
-                  <th className="px-4 py-3">{t('last_updated')}</th>
-                  <th className="px-4 py-3">{t('action')}</th>
+                  <th className="px-6 py-4">{t('currency')}</th>
+                  <th className="px-6 py-4">{t('exchange_rate')}</th>
+                  <th className="px-6 py-4">{t('last_updated')}</th>
+                  <th className="px-6 py-4 text-end pr-6">{t('action')}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {!Array.isArray(rates) || rates.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">{t('no_rates_available')}</td></tr>
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-textSecondary dark:text-gray-400 font-medium">{t('no_rates_available')}</td></tr>
                 ) : (
                   rates.map((rate) => (
-                    <tr key={rate.currencyCode} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                      <td className="px-4 py-3 font-bold">{rate.currencyCode}</td>
-                      <td className="px-4 py-3">
+                    <tr key={rate.currencyCode} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="px-6 py-4 font-black text-textPrimary dark:text-white">{rate.currencyCode}</td>
+                      <td className="px-6 py-4">
                         {editRate?.code === rate.currencyCode ? (
                           <input
+                            autoFocus
                             lang="en"
                             type="number"
                             value={editRate.rate}
                             onChange={(e) => setEditRate({ ...editRate, rate: e.target.value })}
-                            className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border rounded focus:outline-none focus:ring-1 focus:ring-primary"
-                            autoFocus
+                            className="w-32 px-3 py-1.5 bg-white dark:bg-gray-900 border border-primary rounded-lg focus:outline-none ring-2 ring-primary/20 font-bold"
                           />
                         ) : (
                           <div className="flex flex-col">
-                            <span>{rate.rate.toFixed(4)}</span>
+                            <span className="font-bold text-textPrimary dark:text-white">{rate.rate.toFixed(4)}</span>
                             {rate.rate !== 0 && rate.currencyCode !== (user?.baseCurrency || 'USD') && (
-                              <span className="text-[10px] text-slate-400 font-normal">
+                              <span className="text-[10px] text-textSecondary dark:text-gray-400 font-bold opacity-70">
                                 1 {rate.currencyCode} = {(1 / rate.rate).toFixed(4)} {(user?.baseCurrency || 'USD')}
                               </span>
                             )}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-400 text-xs">
-                        {new Date(rate.lastUpdated).toLocaleString()}
-                        {rate.isManual && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded-full">{t('manual')}</span>}
+                      <td className="px-6 py-4 text-textSecondary dark:text-gray-400 text-xs font-medium">
+                        {new Date(rate.lastUpdated).toLocaleDateString()}
+                        {rate.isManual && <span className="ml-2 px-2 py-0.5 bg-warning/10 text-warning text-[10px] font-bold rounded uppercase tracking-wider">{t('manual')}</span>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4 text-end pr-6">
                         {editRate?.code === rate.currencyCode ? (
-                          <div className="flex items-center gap-2">
-                            <button onClick={saveRate} className="text-green-600 hover:text-green-700"><span className="material-symbols-outlined text-[18px]">check</span></button>
-                            <button onClick={() => setEditRate(null)} className="text-red-500 hover:text-red-600"><span className="material-symbols-outlined text-[18px]">close</span></button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={saveRate} className="size-8 rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all flex items-center justify-center"><span className="material-symbols-outlined text-[18px]">check</span></button>
+                            <button onClick={() => setEditRate(null)} className="size-8 rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all flex items-center justify-center"><span className="material-symbols-outlined text-[18px]">close</span></button>
                           </div>
                         ) : (
-                          <button onClick={() => setEditRate({ code: rate.currencyCode, rate: rate.rate.toString() })} className="text-primary hover:text-primary/80">
+                          <button onClick={() => setEditRate({ code: rate.currencyCode, rate: rate.rate.toString() })} className="size-8 rounded-lg hover:bg-primary/10 text-textSecondary dark:text-gray-400 hover:text-primary transition-all flex items-center justify-center ml-auto">
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
                         )}
@@ -194,16 +196,15 @@ const CurrencySettings = () => {
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 
 const Settings: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { theme, setTheme, language, setLanguage, aiEnabled, setAiEnabled } = useAppStore();
   const { user, logout, login } = useAuthStore();
 
-  // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -213,8 +214,6 @@ const Settings: React.FC = () => {
     savingsPercentage: user?.savingsPercentage || 0,
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [encPass, setEncPass] = useState('');
 
   // Avatar modal state
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -244,16 +243,10 @@ const Settings: React.FC = () => {
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
-    setProfileMessage(null);
-
     try {
-      const response = await api.put('/user/profile', profileData);
-      setProfileMessage({ type: 'success', text: t('save_profile_success') });
+      await api.put('/user/profile', profileData);
 
-      // Get current auth state
       const authState = useAuthStore.getState();
-
-      // Update user in auth store with current token
       login({
         ...user!,
         name: profileData.name,
@@ -261,10 +254,10 @@ const Settings: React.FC = () => {
         savingsPercentage: profileData.savingsPercentage,
       }, authState.token || '');
 
-      setProfileMessage({ type: 'success', text: t('save_profile_success') });
+      toast.success(t('save_profile_success'));
       setIsEditingProfile(false);
     } catch (error: any) {
-      setProfileMessage({ type: 'error', text: error.message || t('save_profile_failed') });
+      toast.error(error.message || t('save_profile_failed'));
     } finally {
       setIsSavingProfile(false);
     }
@@ -275,7 +268,6 @@ const Settings: React.FC = () => {
     if (user) {
       try {
         await api.put('/user/profile', { language: newLang });
-        // Update user in auth store 
         login({ ...user, language: newLang }, useAuthStore.getState().token || '');
       } catch (error) {
         console.error('Failed to save language preference:', error);
@@ -283,24 +275,19 @@ const Settings: React.FC = () => {
     }
   };
 
-  const generateAvatar = () => {
-    const seed = profileData.name || user?.email || 'default';
-    setProfileData({ ...profileData, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}` });
-  };
-
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-10">
+    <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-fade-in relative">
       <div>
-        <h2 className="text-3xl font-bold">{t('settings')}</h2>
-        <p className="text-slate-400 mt-1">{t('settings_intro')}</p>
+        <h2 className="text-2xl font-bold text-textPrimary dark:text-white">{t('settings')}</h2>
+        <p className="text-textSecondary mt-1 dark:text-gray-400">{t('settings_intro')}</p>
       </div>
 
       {/* Profile Section */}
-      <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm p-6 border border-slate-100 dark:border-slate-700">
+      <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold text-lg">{t('profile')}</h3>
+          <h3 className="font-bold text-lg text-textPrimary dark:text-white">{t('profile')}</h3>
           {!isEditingProfile && (
-            <button
+            <Button
               onClick={() => {
                 setIsEditingProfile(true);
                 setProfileData({
@@ -311,121 +298,95 @@ const Settings: React.FC = () => {
                   savingsPercentage: user?.savingsPercentage || 0,
                 });
               }}
-              className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-bold hover:bg-primary/20 transition-colors"
+              variant="secondary"
+              size="sm"
+              icon="edit"
             >
               {t('edit')}
-            </button>
+            </Button>
           )}
         </div>
 
-        {profileMessage && (
-          <div className={`mb-4 p-3 rounded-lg ${profileMessage.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'}`}>
-            {profileMessage.text}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {/* Avatar */}
-          <div className="flex items-center gap-4">
-            <img
-              src={isEditingProfile ? profileData.avatar : user?.avatar}
-              alt="Avatar"
-              className="size-20 rounded-full ring-4 ring-primary/20"
-            />
-            {isEditingProfile && (
-              <button
-                onClick={() => setShowAvatarModal(true)}
-                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors"
-              >
-                {t('change_avatar')}
-              </button>
-            )}
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-bold mb-2">{t('name')}</label>
-            {isEditingProfile ? (
-              <input
-                type="text"
-                value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder={t('full_name')}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className="relative group">
+              <img
+                src={isEditingProfile ? profileData.avatar : user?.avatar}
+                alt="Avatar"
+                className="size-24 rounded-full border-4 border-gray-100 dark:border-gray-700 shadow-sm object-cover"
               />
-            ) : (
-              <p className="text-slate-600 dark:text-slate-400">{user?.name}</p>
-            )}
+              {isEditingProfile && (
+                <button
+                  onClick={() => setShowAvatarModal(true)}
+                  className="absolute bottom-0 right-0 size-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                >
+                  <span className="material-symbols-outlined text-[18px]">camera_alt</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 w-full space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Input
+                    label={t('name')}
+                    disabled={!isEditingProfile}
+                    value={isEditingProfile ? profileData.name : user?.name}
+                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Input
+                    label={t('email')}
+                    disabled={true}
+                    value={user?.email || ''}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Input
+                  label={t('phone')}
+                  disabled={!isEditingProfile}
+                  value={isEditingProfile ? profileData.phone : (profileData.phone || t('not_set'))}
+                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  placeholder={isEditingProfile ? "+1 234 567 8900" : ""}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">{t('bio')}</label>
+                <textarea
+                  disabled={!isEditingProfile}
+                  value={isEditingProfile ? profileData.bio : (profileData.bio || t('no_bio'))}
+                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border bg-transparent resize-none transition-all outline-none font-medium text-textPrimary dark:text-white ${!isEditingProfile ? 'border-transparent px-0 py-0' : 'border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-4 focus:ring-primary/10'}`}
+                  rows={isEditingProfile ? 3 : 1}
+                  placeholder={isEditingProfile ? "Tell us about yourself..." : ""}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Email (read-only) */}
-          <div>
-            <label className="block text-sm font-bold mb-2">{t('email')}</label>
-            <p className="text-slate-600 dark:text-slate-400">{user?.email}</p>
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-bold mb-2">{t('phone')}</label>
-            {isEditingProfile ? (
-              <input
-                type="tel"
-                value={profileData.phone}
-                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="+1 234 567 8900"
-              />
-            ) : (
-              <p className="text-slate-600 dark:text-slate-400">{profileData.phone || t('not_set')}</p>
-            )}
-          </div>
-
-          {/* Bio */}
-          <div>
-            <label className="block text-sm font-bold mb-2">{t('bio')}</label>
-            {isEditingProfile ? (
-              <textarea
-                value={profileData.bio}
-                onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                rows={3}
-                placeholder="..."
-              />
-            ) : (
-              <p className="text-slate-600 dark:text-slate-400">{profileData.bio || t('no_bio')}</p>
-            )}
-          </div>
-
-          {/* Action Buttons */}
           {isEditingProfile && (
-            <div className="flex gap-3 pt-4">
-              <button
-                onClick={handleSaveProfile}
-                disabled={isSavingProfile}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {isSavingProfile ? t('saving_dots') : t('save_changes')}
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditingProfile(false);
-                  setProfileMessage(null);
-                }}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-              >
+            <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <Button onClick={() => setIsEditingProfile(false)} variant="ghost" className="flex-1">
                 {t('cancel')}
-              </button>
+              </Button>
+              <Button onClick={handleSaveProfile} isLoading={isSavingProfile} variant="primary" className="flex-1">
+                {t('save_changes')}
+              </Button>
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Savings Settings */}
-      <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm p-6 border border-slate-100 dark:border-slate-700">
-        <h3 className="font-bold text-lg mb-6">{t('savings_percentage')}</h3>
-        <div className="space-y-4">
-          <p className="text-sm text-slate-400">{t('savings_percentage_hint')}</p>
-          <div className="flex items-center gap-4">
+      <Card className="p-6">
+        <h3 className="font-bold text-lg mb-6 text-textPrimary dark:text-white">{t('savings_percentage')}</h3>
+        <div className="space-y-6">
+          <p className="text-sm text-textSecondary dark:text-gray-400">{t('savings_percentage_hint')}</p>
+          <div className="flex items-center gap-6">
             <div className="flex-1">
               <input
                 type="range"
@@ -437,14 +398,13 @@ const Settings: React.FC = () => {
                   const val = parseInt(e.target.value);
                   setProfileData({ ...profileData, savingsPercentage: val });
                   if (!isEditingProfile) {
-                    // Trigger save immediately if not in full edit mode
                     api.put('/user/profile', { savingsPercentage: val });
                     login({ ...user!, savingsPercentage: val }, useAuthStore.getState().token || '');
                   }
                 }}
-                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
+                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
-              <div className="flex justify-between mt-2 text-xs font-bold text-slate-400">
+              <div className="flex justify-between mt-2 text-[10px] font-bold text-textSecondary uppercase tracking-wider">
                 <span>0%</span>
                 <span>25%</span>
                 <span>50%</span>
@@ -452,56 +412,52 @@ const Settings: React.FC = () => {
                 <span>100%</span>
               </div>
             </div>
-            <div className="size-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xl border border-primary/20">
+            <div className="size-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-xl border border-primary/20 shadow-sm">
               {profileData.savingsPercentage}%
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* General Settings */}
-      <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm p-6 border border-slate-100 dark:border-slate-700">
-        <h3 className="font-bold text-lg mb-6">{t('general_settings')}</h3>
-
+      <Card className="p-6">
+        <h3 className="font-bold text-lg mb-6 text-textPrimary dark:text-white">{t('general_settings')}</h3>
         <div className="space-y-6">
-          {/* Language */}
           <div>
-            <label className="block text-sm font-bold mb-2">{t('language')}</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleLanguageChange('en')}
-                className={`flex-1 py-2 px-4 rounded-lg font-bold transition-colors ${language === 'en' ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => handleLanguageChange('ar')}
-                className={`flex-1 py-2 px-4 rounded-lg font-bold transition-colors ${language === 'ar' ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
-              >
-                العربية
-              </button>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-3">{t('language')}</label>
+            <div className="flex gap-3">
+              {(['en', 'ar'] as const).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => handleLanguageChange(lang)}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all border-2 ${language === lang ? 'border-primary bg-primary/5 text-primary' : 'border-transparent bg-gray-50 dark:bg-gray-800 text-textSecondary hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                >
+                  {lang === 'en' ? 'English' : 'العربية'}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Theme */}
           <div>
-            <label className="block text-sm font-bold mb-2">{t('theme')}</label>
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as any)}
-              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="light">{t('theme_light')}</option>
-              <option value="dark">{t('theme_dark')}</option>
-              <option value="system">{t('theme_system')}</option>
-            </select>
+            <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">{t('theme')}</label>
+            <div className="relative">
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as any)}
+                className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-primary focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all appearance-none cursor-pointer font-bold text-textPrimary dark:text-white"
+              >
+                <option value="light">{t('theme_light')}</option>
+                <option value="dark">{t('theme_dark')}</option>
+                <option value="system">{t('theme_system')}</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-textSecondary">expand_more</span>
+            </div>
           </div>
 
-          {/* AI Toggle */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-transparent hover:border-primary/20 transition-all">
             <div>
-              <p className="font-bold">{t('ai_insights')}</p>
-              <p className="text-sm text-slate-400">{t('ai_insights_hint')}</p>
+              <p className="font-bold text-textPrimary dark:text-white">{t('ai_insights')}</p>
+              <p className="text-xs text-textSecondary dark:text-gray-400 mt-1">{t('ai_insights_hint')}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -510,109 +466,88 @@ const Settings: React.FC = () => {
                 onChange={(e) => setAiEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Currency Settings */}
       <CurrencySettings />
 
-      {/* Logout */}
-      <div className="bg-surface dark:bg-slate-800 rounded-card shadow-sm p-6 border border-slate-100 dark:border-slate-700">
-        <button
+      <div className="flex justify-end">
+        <Button
           onClick={logout}
-          className="w-full px-4 py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+          variant="danger"
+          icon="logout"
+          className="w-full sm:w-auto"
         >
-          <span className="material-symbols-outlined">logout</span>
           {t('logout')}
-        </button>
+        </Button>
       </div>
 
-      {/* Avatar Modal */}
       {showAvatarModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">Change Avatar</h3>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
+          <Card className="w-full max-w-md animate-scale-up" onClick={(e) => e?.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-textPrimary dark:text-white">Change Avatar</h3>
               <button
                 onClick={() => {
                   setShowAvatarModal(false);
                   setAvatarUrl('');
                 }}
-                className="size-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="size-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <span className="material-symbols-outlined text-slate-400">close</span>
+                <span className="material-symbols-outlined text-textSecondary">close</span>
               </button>
             </div>
 
-            {/* Preview */}
-            <div className="flex justify-center mb-6">
-              <img
-                src={avatarUrl || profileData.avatar || user?.avatar}
-                alt="Preview"
-                className="size-32 rounded-full ring-4 ring-primary/20"
-              />
-            </div>
+            <div className="p-6">
+              <div className="flex justify-center mb-8">
+                <img
+                  src={avatarUrl || profileData.avatar || user?.avatar}
+                  alt="Preview"
+                  className="size-32 rounded-full border-4 border-primary/20 shadow-lg object-cover bg-gray-100 dark:bg-gray-800"
+                />
+              </div>
 
-            {/* Upload from device */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold mb-2">Upload from Device</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              />
-              {uploadingImage && (
-                <p className="text-xs text-slate-400 mt-1">Uploading...</p>
-              )}
-            </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-textSecondary uppercase tracking-wider mb-2">Upload from Device</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-textSecondary dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer"
+                  />
+                  {uploadingImage && (
+                    <p className="text-xs text-primary mt-2 font-bold animate-pulse">Uploading...</p>
+                  )}
+                </div>
 
-            {/* URL Input */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold mb-2">Or Enter Image URL</label>
-              <input
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="https://example.com/avatar.jpg"
-              />
-            </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700"></div></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-gray-900 px-2 text-textSecondary">Or</span></div>
+                </div>
 
-            {/* Generate Random */}
-            <button
-              onClick={() => {
-                const seed = Math.random().toString(36).substring(7);
-                setAvatarUrl(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
-              }}
-              className="w-full mb-4 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            >
-              Generate Random Avatar
-            </button>
+                <Button
+                  onClick={() => {
+                    const seed = Math.random().toString(36).substring(7);
+                    setAvatarUrl(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`);
+                  }}
+                  variant="secondary"
+                  fullWidth
+                  icon="autorenew"
+                >
+                  Generate Random Avatar
+                </Button>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={applyAvatar}
-                disabled={!avatarUrl}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Apply
-              </button>
-              <button
-                onClick={() => {
-                  setShowAvatarModal(false);
-                  setAvatarUrl('');
-                }}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-              >
-                Cancel
-              </button>
+                <div className="flex gap-3 pt-4">
+                  <Button onClick={() => setShowAvatarModal(false)} variant="ghost" fullWidth>Cancel</Button>
+                  <Button onClick={applyAvatar} disabled={!avatarUrl} variant="primary" fullWidth>Apply</Button>
+                </div>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
