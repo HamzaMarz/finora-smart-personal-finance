@@ -1,52 +1,57 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Finora - Personal Finance</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&family=Roboto:wght@300;400;500;700&family=Cairo:wght@300;400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <!-- Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: '#2D9CDB',
-              secondary: '#56CCF2',
-              success: '#27AE60',
-              warning: '#F2C94C',
-              error: '#EB5757',
-              background: '#F9FAFB',
-              surface: '#FFFFFF',
-              darkBackground: '#1F2937',
-              darkSurface: '#111827',
-              textPrimary: '#111827',
-              textSecondary: '#6B7280',
-            },
-            fontFamily: {
-              heading: ['Montserrat', 'Inter', 'sans-serif'],
-              body: ['Roboto', 'Inter', 'sans-serif'],
-              arabic: ['Cairo', 'IBM Plex Sans Arabic', 'sans-serif'],
-            },
-            borderRadius: {
-              'card': '16px',
-            },
-            boxShadow: {
-              'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-              'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.05)',
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finora - Personal Finance</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&family=Roboto:wght@300;400;500;700&family=Cairo:wght@300;400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <!-- Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2D9CDB',
+            secondary: '#56CCF2',
+            success: '#27AE60',
+            warning: '#F2C94C',
+            error: '#EB5757',
+            background: '#F9FAFB',
+            surface: '#FFFFFF',
+            darkBackground: '#1F2937',
+            darkSurface: '#111827',
+            textPrimary: '#111827',
+            textSecondary: '#6B7280',
+          },
+          fontFamily: {
+            heading: ['Montserrat', 'Inter', 'sans-serif'],
+            body: ['Roboto', 'Inter', 'sans-serif'],
+            arabic: ['Cairo', 'IBM Plex Sans Arabic', 'sans-serif'],
+          },
+          borderRadius: {
+            'card': '16px',
+          },
+          boxShadow: {
+            'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+            'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.05)',
           }
         }
       }
-    </script>
+    }
+  </script>
   <script type="importmap">
 {
   "imports": {
@@ -74,10 +79,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

@@ -30,8 +30,19 @@
         --text-secondary: #9CA3AF;
     }
 
+    /* Global font size increase for better readability */
+    html {
+        font-size: 17px;
+    }
+
+    /* Further increase for Arabic as Cairo/IBM Sans can appear smaller */
+    [lang="ar"] html {
+        font-size: 18px;
+    }
+
     body {
         @apply bg-background dark:bg-darkBackground text-textPrimary dark:text-white font-body transition-colors duration-200 antialiased;
+        line-height: 1.6;
     }
 
     /* Font overrides for Arabic */

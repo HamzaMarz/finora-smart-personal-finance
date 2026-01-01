@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../services/api';
+import { FinanceService } from '../services/finance.service';
 import toast from 'react-hot-toast';
 import i18n from '../i18n';
 
@@ -36,15 +37,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     fetchNotifications: async (category = 'all') => {
         set({ loading: true });
         try {
-            const url = category === 'all' ? '/notifications' : `/notifications?category=${category}`;
-            const [notifJson, countJson] = await Promise.all([
-                api.get(url),
-                api.get('/notifications/unread-count')
+            const [notifs, countData] = await Promise.all([
+                FinanceService.getNotifications(category),
+                FinanceService.getNotificationUnreadCount()
             ]);
 
             set({
-                notifications: notifJson.data,
-                unreadCount: countJson.data.count,
+                notifications: notifs,
+                unreadCount: countData.count,
                 loading: false
             });
         } catch (error) {
@@ -56,24 +56,21 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     pollNotifications: async () => {
         const { lastPolledAt } = get();
         try {
-            // Fetch latest notifications (assuming sort desc by createdAt)
-            const response = await api.get('/notifications');
-            const latestNotifs: Notification[] = response.data;
-            const countRes = await api.get('/notifications/unread-count');
+            // Fetch latest notifications
+            // For offline usage we rely on periodic fetch or sync events generally, but poll can work if FinanceService hits IndexedDB
+            const latestNotifs: Notification[] = await FinanceService.getNotifications('all');
+            const countRes = await FinanceService.getNotificationUnreadCount();
 
             const newPolledAt = Date.now();
 
             // Check for new notifications created after lastPolledAt
-            // (Using a small buffer or relying on strict inequality)
             const newNotifs = latestNotifs.filter(n => {
                 const createdAt = new Date(n.createdAt).getTime();
                 return createdAt > lastPolledAt && !n.isRead;
             });
 
             if (newNotifs.length > 0) {
-                // Show toast for the most recent one (or summary)
                 newNotifs.forEach(n => {
-                    // Try to translate if it's a key or a JSON object, otherwise show message
                     let msg = n.message;
                     try {
                         if (msg.trim().startsWith('{')) {
@@ -84,9 +81,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
                         } else if (i18n.exists(msg)) {
                             msg = i18n.t(msg);
                         }
-                    } catch (e) {
-                        // fallback to original string
-                    }
+                    } catch (e) { }
 
                     toast(msg, {
                         icon: getCategoryEmoji(n.category),
@@ -107,7 +102,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
             set({
                 notifications: latestNotifs,
-                unreadCount: countRes.data.count,
+                unreadCount: countRes.count,
                 lastPolledAt: newPolledAt
             });
         } catch (error) {
@@ -117,7 +112,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     markAsRead: async (id) => {
         try {
-            await api.put(`/notifications/${id}/read`);
+            await FinanceService.markNotificationRead(id);
             set(state => ({
                 notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n),
                 unreadCount: Math.max(0, state.unreadCount - 1)
@@ -129,7 +124,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     markAllAsRead: async () => {
         try {
-            await api.put('/notifications/mark-all-read');
+            await FinanceService.markAllNotificationsRead();
             set(state => ({
                 notifications: state.notifications.map(n => ({ ...n, isRead: true })),
                 unreadCount: 0
@@ -141,7 +136,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     deleteNotification: async (id) => {
         try {
-            await api.delete(`/notifications/${id}`);
+            await FinanceService.deleteNotification(id);
             set(state => ({
                 notifications: state.notifications.filter(n => n.id !== id),
                 unreadCount: state.notifications.find(n => n.id === id && !n.isRead)
@@ -155,7 +150,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     deleteAll: async () => {
         try {
-            await api.delete('/notifications');
+            await FinanceService.deleteAllNotifications();
             set({ notifications: [], unreadCount: 0 });
         } catch (error) {
             console.error(error);

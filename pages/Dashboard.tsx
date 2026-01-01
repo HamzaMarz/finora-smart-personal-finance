@@ -77,8 +77,8 @@ const Dashboard: React.FC = () => {
         <Card className="p-6 flex flex-col h-[400px]">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-textPrimary dark:text-white">{t('net_worth_trend')}</h3>
-              <p className="text-xs text-textSecondary dark:text-gray-400">{t('current_month')}</p>
+              <h3 className="text-xl font-bold text-textPrimary dark:text-white">{t('net_worth_trend')}</h3>
+              <p className="text-sm text-textSecondary dark:text-gray-400">{t('current_month')}</p>
             </div>
             <button className="size-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-textSecondary dark:text-gray-400 transition-colors">
               <span className="material-symbols-outlined text-xl">more_horiz</span>
@@ -91,8 +91,8 @@ const Dashboard: React.FC = () => {
         <Card className="p-6 flex flex-col h-[400px]">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-textPrimary dark:text-white">{t('income_vs_expenses')}</h3>
-              <p className="text-xs text-textSecondary dark:text-gray-400">{t('monthly_comparison')}</p>
+              <h3 className="text-xl font-bold text-textPrimary dark:text-white">{t('income_vs_expenses')}</h3>
+              <p className="text-sm text-textSecondary dark:text-gray-400">{t('monthly_comparison')}</p>
             </div>
             <button className="size-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-textSecondary dark:text-gray-400 transition-colors">
               <span className="material-symbols-outlined text-xl">more_horiz</span>

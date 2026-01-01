@@ -1,5 +1,7 @@
 
 import React, { useEffect } from 'react';
+import { syncManager } from './services/SyncManager';
+import { backupService } from './services/ClientBackupService';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import { useAppStore } from './store/useAppStore';
@@ -46,6 +48,44 @@ const App: React.FC = () => {
     document.documentElement.setAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
     document.documentElement.setAttribute('lang', language === 'ar' ? 'ar-u-nu-latn' : 'en');
   }, [theme, language]);
+
+
+  useEffect(() => {
+    // Backup Scheduler (3 times a day = every 8 hours)
+    const BACKUP_INTERVAL = 8 * 60 * 60 * 1000;
+
+    const checkAndBackup = async () => {
+      try {
+        const lastBackup = localStorage.getItem('lastBackupTime');
+        const now = Date.now();
+
+        if (!lastBackup || now - parseInt(lastBackup) > BACKUP_INTERVAL) {
+          console.log('⏳ Starting scheduled backup...');
+          // We don't await here to not block UI, but in a real app better handling needed
+          // Also we need to ensure user has granted permissions. 
+          // If not, this might fail silently or prompt (which is bad if unsolicited).
+          // backupService will prompt if needed, but browsers block unsolicited popups.
+          // So this only works if token is valid.
+          await backupService.createBackup(true);
+          localStorage.setItem('lastBackupTime', now.toString());
+          console.log('✅ Scheduled backup completed');
+        }
+      } catch (e) {
+        console.warn('Scheduled backup skipped/failed:', e);
+      }
+    };
+
+    const intervalId = setInterval(checkAndBackup, 60 * 60 * 1000); // Check every hour
+    checkAndBackup(); // Check on mount
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // existing syncManager init commented out
+  // useEffect(() => {
+  //   syncManager.init();
+  // }, []);
+
 
   return (
     <Routes>

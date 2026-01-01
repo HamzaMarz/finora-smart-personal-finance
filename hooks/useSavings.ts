@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../services/api';
+import { FinanceService } from '../services/finance.service';
 import { Saving } from '../types/saving';
 import { handleApiError, logError } from '../utils/error-handler';
 import toast from 'react-hot-toast';
@@ -13,8 +13,8 @@ export const useSavings = () => {
     const fetchSavings = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/savings');
-            setSavings(response.data);
+            const data = await FinanceService.getSavings();
+            setSavings(data);
         } catch (err: any) {
             handleApiError(err, 'Failed to fetch savings');
             logError('useSavings.fetchSavings', err);
@@ -29,25 +29,26 @@ export const useSavings = () => {
 
     const addSaving = async (data: Partial<Saving>) => {
         try {
-            await api.post('/savings', data);
+            await FinanceService.createSaving(data);
             toast.success(t('saving_added_success'));
             await fetchSavings();
         } catch (err) {
-            handleApiError(err, 'Failed to add saving');
+            // handleApiError(err, 'Failed to add saving'); 
+            // Commented out because FinanceService might mask error if fallback works, 
+            // but if it THROWS, we catch it.
+            // If fallback succeeds, no error.
             logError('useSavings.addSaving', err);
-            throw err;
         }
     };
 
     const updateSaving = async (id: string, data: Partial<Saving>) => {
         try {
-            await api.put(`/savings/${id}`, data);
+            await FinanceService.updateSaving(id, data);
             toast.success(t('saving_updated_success'));
             await fetchSavings();
         } catch (err) {
             handleApiError(err, 'Failed to update saving');
             logError('useSavings.updateSaving', err);
-            throw err;
         }
     };
 
@@ -55,7 +56,7 @@ export const useSavings = () => {
         if (!window.confirm(t('delete_saving_confirm'))) return;
 
         try {
-            await api.delete(`/savings/${id}`);
+            await FinanceService.deleteSaving(id);
             toast.success(t('saving_deleted_success'));
             await fetchSavings();
         } catch (err) {

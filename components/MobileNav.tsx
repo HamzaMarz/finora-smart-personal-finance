@@ -29,14 +29,17 @@ const MobileNav: React.FC = () => {
                         }`
                     }
                 >
-                    <div className={({ isActive }: { isActive: boolean }) => `relative p-1 rounded-xl transition-all ${isActive ? 'bg-primary/10' : ''}`}>
-                        <span className={`material-symbols-outlined text-[24px] transition-transform duration-200 group-active:scale-95`}>{item.icon}</span>
-                        {item.label === 'notifications' && unreadCount > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 size-3 bg-error rounded-full border-2 border-surface dark:border-darkSurface"></span>
-                        )}
-                    </div>
-                    {/* Label (optional on very small screens, but good for accessibility) */}
-                    <span className="text-[10px] font-bold tracking-wide">{t(item.label)}</span>
+                    {({ isActive }) => (
+                        <>
+                            <div className={`relative p-1 rounded-xl transition-all ${isActive ? 'bg-primary/10' : ''}`}>
+                                <span className={`material-symbols-outlined text-[24px] transition-transform duration-200 group-active:scale-95`}>{item.icon}</span>
+                                {item.label === 'notifications' && unreadCount > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 size-3 bg-error rounded-full border-2 border-surface dark:border-darkSurface"></span>
+                                )}
+                            </div>
+                            <span className="text-[10px] font-bold tracking-wide">{t(item.label)}</span>
+                        </>
+                    )}
                 </NavLink>
             ))}
         </nav>

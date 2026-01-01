@@ -37,10 +37,24 @@ api.interceptors.response.use(
   (error) => {
     // 1. Handle Auth Expiration
     if (error.response?.status === 401) {
-      localStorage.removeItem('finora-auth');
-      // Only redirect if we're not already on the login page
-      if (!window.location.hash.includes('/login')) {
-        window.location.href = '#/login';
+      // Check if we are in demo mode (client-side specific token)
+      const authStorage = localStorage.getItem('finora-auth');
+      let isDemo = false;
+      if (authStorage) {
+        try {
+          const { state } = JSON.parse(authStorage);
+          if (state.token === 'demo-token') isDemo = true;
+        } catch (e) { }
+      }
+
+      // If it's NOT a demo session, clear auth and redirect.
+      // If it IS a demo session, the server rejected the 'demo-token' (expected),
+      // but we shouldn't logout the user locally. Instead, services should mock response.
+      if (!isDemo) {
+        localStorage.removeItem('finora-auth');
+        if (!window.location.hash.includes('/login')) {
+          window.location.href = '#/login';
+        }
       }
     }
 

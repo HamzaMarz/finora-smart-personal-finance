@@ -7,6 +7,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import toast from 'react-hot-toast';
+import { backupService } from '../services/ClientBackupService';
 
 const CurrencySettings = () => {
   const { t } = useTranslation();
@@ -205,6 +206,10 @@ const Settings: React.FC = () => {
   const { theme, setTheme, language, setLanguage, aiEnabled, setAiEnabled } = useAppStore();
   const { user, logout, login } = useAuthStore();
 
+  // Backup State
+  const [backingUp, setBackingUp] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -275,12 +280,70 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleBackup = async () => {
+    try {
+      setBackingUp(true);
+      await backupService.createBackup();
+      toast.success(t('backup_success', 'Backup completed successfully'));
+    } catch (error: any) {
+      console.error(error);
+      toast.error(t('backup_failed', 'Backup failed: ') + (error.message || 'Unknown error'));
+    } finally {
+      setBackingUp(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!window.confirm(t('restore_confirm', 'Restoring will overwrite current data. Continue?'))) return;
+    try {
+      setRestoring(true);
+      await backupService.restoreLatestBackup();
+      toast.success(t('restore_success', 'Data restored successfully'));
+    } catch (error: any) {
+      console.error(error);
+      toast.error(t('restore_failed', 'Restore failed: ') + (error.message || 'Unknown error'));
+      setRestoring(false); // Only set false on error, success reloads page
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-fade-in relative">
       <div>
         <h2 className="text-2xl font-bold text-textPrimary dark:text-white">{t('settings')}</h2>
         <p className="text-textSecondary mt-1 dark:text-gray-400">{t('settings_intro')}</p>
       </div>
+
+      {/* Backup & Restore Section */}
+      <Card className="p-6 border-l-4 border-l-primary">
+        <h3 className="font-bold text-lg mb-2 text-textPrimary dark:text-white flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">cloud_sync</span>
+          {t('backup_restore', 'Backup & Restore')}
+        </h3>
+        <p className="text-sm text-textSecondary dark:text-gray-400 mb-6">
+          {t('backup_desc', 'Securely backup your data to Google Drive. Backups are encrypted.')}
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button
+            onClick={handleBackup}
+            isLoading={backingUp}
+            disabled={restoring}
+            icon="backup"
+            variant="primary"
+          >
+            {t('backup_now', 'Backup Now')}
+          </Button>
+          <Button
+            onClick={handleRestore}
+            isLoading={restoring}
+            disabled={backingUp}
+            icon="restore"
+            variant="outline"
+          >
+            {t('restore_cloud', 'Restore from Cloud')}
+          </Button>
+        </div>
+      </Card>
 
       {/* Profile Section */}
       <Card className="p-6">

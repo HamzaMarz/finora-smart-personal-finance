@@ -81,6 +81,7 @@ interface FinoraDB extends DBSchema {
             id: string;
             userId: string;
             type: 'income' | 'expense' | 'saving' | 'investment' | 'system';
+            category?: string;
             title: string;
             message: string;
             isRead: boolean;
@@ -106,7 +107,7 @@ let dbInstance: IDBPDatabase<FinoraDB> | null = null;
 export async function initializeIndexedDB(): Promise<IDBPDatabase<FinoraDB>> {
     if (dbInstance) return dbInstance;
 
-    dbInstance = await openDB<FinoraDB>('finora-db', 1, {
+    dbInstance = await openDB<FinoraDB>('finora-db', 2, {
         upgrade(db) {
             // Users store
             if (!db.objectStoreNames.contains('users')) {
@@ -171,19 +172,19 @@ export const IndexedDBService = {
     // Create
     async create<T extends keyof FinoraDB>(storeName: T, data: FinoraDB[T]['value']): Promise<void> {
         const db = await getDB();
-        await db.add(storeName, data as any);
+        await db.add(storeName as any, data as any);
     },
 
     // Read one
     async getById<T extends keyof FinoraDB>(storeName: T, id: string): Promise<FinoraDB[T]['value'] | undefined> {
         const db = await getDB();
-        return await db.get(storeName, id);
+        return await db.get(storeName as any, id);
     },
 
     // Read all
     async getAll<T extends keyof FinoraDB>(storeName: T): Promise<FinoraDB[T]['value'][]> {
         const db = await getDB();
-        return await db.getAll(storeName);
+        return await db.getAll(storeName as any);
     },
 
     // Read by index
@@ -193,25 +194,25 @@ export const IndexedDBService = {
         query: any
     ): Promise<FinoraDB[T]['value'][]> {
         const db = await getDB();
-        return await db.getAllFromIndex(storeName, indexName as any, query);
+        return await db.getAllFromIndex(storeName as any, indexName as any, query);
     },
 
     // Update
     async update<T extends keyof FinoraDB>(storeName: T, data: FinoraDB[T]['value']): Promise<void> {
         const db = await getDB();
-        await db.put(storeName, data as any);
+        await db.put(storeName as any, data as any);
     },
 
     // Delete
     async delete<T extends keyof FinoraDB>(storeName: T, id: string): Promise<void> {
         const db = await getDB();
-        await db.delete(storeName, id);
+        await db.delete(storeName as any, id);
     },
 
     // Clear store
     async clear<T extends keyof FinoraDB>(storeName: T): Promise<void> {
         const db = await getDB();
-        await db.clear(storeName);
+        await db.clear(storeName as any);
     },
 
     // Add to sync queue
@@ -230,6 +231,12 @@ export const IndexedDBService = {
     async getSyncQueue(): Promise<any[]> {
         const db = await getDB();
         return await db.getAll('sync_queue');
+    },
+
+    // Delete item from sync queue
+    async deleteFromSyncQueue(id: string): Promise<void> {
+        const db = await getDB();
+        await db.delete('sync_queue', id);
     },
 
     // Clear sync queue

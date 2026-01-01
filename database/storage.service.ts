@@ -189,8 +189,8 @@ export const StorageService = {
 
     // ==================== INCOME ====================
     income: {
-        create: async (data: Omit<IncomeSource, 'id'>): Promise<IncomeSource> => {
-            const id = uuidv4();
+        create: async (data: Omit<IncomeSource, 'id'> & { id?: string }): Promise<IncomeSource> => {
+            const id = data.id || uuidv4();
             const stmt = db.prepare(`
         INSERT INTO income_sources (id, user_id, source_name, amount, recurrence, is_active, start_date, end_date)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -245,12 +245,17 @@ export const StorageService = {
             const stmt = db.prepare('DELETE FROM income_sources WHERE id = ?');
             stmt.run(id);
         },
+
+        deleteAllByUser: async (userId: string): Promise<void> => {
+            const stmt = db.prepare('DELETE FROM income_sources WHERE user_id = ?');
+            stmt.run(userId);
+        },
     },
 
     // ==================== EXPENSES ====================
     expenses: {
-        create: async (data: Omit<Expense, 'id'>): Promise<Expense> => {
-            const id = uuidv4();
+        create: async (data: Omit<Expense, 'id'> & { id?: string }): Promise<Expense> => {
+            const id = data.id || uuidv4();
             const stmt = db.prepare(`
         INSERT INTO expenses (id, user_id, category, amount, currency, description, expense_date, is_recurring, recurrence_type)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -308,12 +313,17 @@ export const StorageService = {
             const stmt = db.prepare('DELETE FROM expenses WHERE id = ?');
             stmt.run(id);
         },
+
+        deleteAllByUser: async (userId: string): Promise<void> => {
+            const stmt = db.prepare('DELETE FROM expenses WHERE user_id = ?');
+            stmt.run(userId);
+        },
     },
 
     // ==================== SAVINGS ====================
     savings: {
-        create: async (data: Omit<Saving, 'id'>): Promise<Saving> => {
-            const id = uuidv4();
+        create: async (data: Omit<Saving, 'id'> & { id?: string }): Promise<Saving> => {
+            const id = data.id || uuidv4();
             const stmt = db.prepare(`
         INSERT INTO savings (id, user_id, amount, type, percentage, saving_date, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -365,12 +375,17 @@ export const StorageService = {
             const stmt = db.prepare('DELETE FROM savings WHERE id = ?');
             stmt.run(id);
         },
+
+        deleteAllByUser: async (userId: string): Promise<void> => {
+            const stmt = db.prepare('DELETE FROM savings WHERE user_id = ?');
+            stmt.run(userId);
+        },
     },
 
     // ==================== INVESTMENTS ====================
     investments: {
-        create: async (data: Omit<Investment, 'id'>): Promise<Investment> => {
-            const id = uuidv4();
+        create: async (data: Omit<Investment, 'id'> & { id?: string }): Promise<Investment> => {
+            const id = data.id || uuidv4();
             const stmt = db.prepare(`
         INSERT INTO investments (id, user_id, asset_name, asset_type, symbol, quantity, buy_price, initial_amount, current_value, currency, purchase_date, close_date, status, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -444,6 +459,11 @@ export const StorageService = {
             const stmt = db.prepare('DELETE FROM investments WHERE id = ?');
             stmt.run(id);
         },
+
+        deleteAllByUser: async (userId: string): Promise<void> => {
+            const stmt = db.prepare('DELETE FROM investments WHERE user_id = ?');
+            stmt.run(userId);
+        },
     },
 
     // ==================== NOTIFICATIONS ====================
@@ -472,9 +492,9 @@ export const StorageService = {
             }));
         },
 
-        create: (notification: Omit<Notification, 'id' | 'createdAt'>): Notification => {
-            const id = uuidv4();
-            const createdAt = new Date().toISOString();
+        create: (notification: Omit<Notification, 'id' | 'createdAt'> & { id?: string, createdAt?: string }): Notification => {
+            const id = notification.id || uuidv4();
+            const createdAt = notification.createdAt || new Date().toISOString();
 
             db.prepare(`
                 INSERT INTO notifications (id, user_id, type, title, message, category, is_read, created_at)
@@ -517,14 +537,14 @@ export const StorageService = {
 
     // ==================== REPORTS ====================
     reports: {
-        create: async (userId: string, type: string, periodStart: string, periodEnd: string, data: any): Promise<string> => {
-            const id = uuidv4();
+        create: async (userId: string, type: string, periodStart: string, periodEnd: string, data: any, id?: string): Promise<string> => {
+            const reportId = id || uuidv4();
             const stmt = db.prepare(`
                 INSERT INTO reports (id, user_id, report_type, period_start, period_end, data)
                 VALUES (?, ?, ?, ?, ?, ?)
             `);
-            stmt.run(id, userId, type, periodStart, periodEnd, JSON.stringify(data));
-            return id;
+            stmt.run(reportId, userId, type, periodStart, periodEnd, JSON.stringify(data));
+            return reportId;
         },
 
         findByUser: async (userId: string): Promise<any[]> => {

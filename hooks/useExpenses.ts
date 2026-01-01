@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { FinanceService } from '../services/finance.service';
 import { Expense } from '../types/expense';
 import { handleApiError, logError } from '../utils/error-handler';
 import toast from 'react-hot-toast';
@@ -13,8 +14,8 @@ export const useExpenses = () => {
     const fetchExpenses = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/expenses');
-            setExpenses(response.data);
+            const data = await FinanceService.getExpenses();
+            setExpenses(data);
         } catch (err: any) {
             handleApiError(err, 'Failed to fetch expenses');
             logError('useExpenses.fetchExpenses', err);
@@ -29,7 +30,7 @@ export const useExpenses = () => {
 
     const addExpense = async (data: Partial<Expense>) => {
         try {
-            await api.post('/expenses', data);
+            await FinanceService.createExpense(data);
             toast.success(t('expense_added_title'));
             await fetchExpenses();
         } catch (err) {
@@ -41,7 +42,7 @@ export const useExpenses = () => {
 
     const updateExpense = async (id: string, data: Partial<Expense>) => {
         try {
-            await api.put(`/expenses/${id}`, data);
+            await FinanceService.updateExpense(id, data);
             toast.success(t('save_changes'));
             await fetchExpenses();
         } catch (err) {
@@ -55,7 +56,7 @@ export const useExpenses = () => {
         if (!window.confirm(t('delete_confirm'))) return;
 
         try {
-            await api.delete(`/expenses/${id}`);
+            await FinanceService.deleteExpense(id);
             toast.success('Expense deleted');
             await fetchExpenses();
         } catch (err) {

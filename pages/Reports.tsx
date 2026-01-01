@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import api from '../services/api';
+import { FinanceService } from '../services/finance.service';
 import {
   FinoraLineChart,
   FinoraBarChart,
@@ -53,8 +54,8 @@ const Reports: React.FC = () => {
     try {
       setLoading(true);
       const dates = calculateDates(period);
-      const response = await api.get(`/reports/generate?periodStart=${dates.start}&periodEnd=${dates.end}`);
-      setReportData(response.data);
+      const data = await FinanceService.getReportsData(dates.start, dates.end);
+      setReportData(data);
     } catch (err) {
       console.error('Failed to fetch report data', err);
       toast.error('Failed to generate report');

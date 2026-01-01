@@ -8,7 +8,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const Input: React.FC<InputProps> = ({
-    label,
+    label = '',
     icon,
     error,
     className = '',
@@ -22,7 +22,7 @@ const Input: React.FC<InputProps> = ({
     const [isFocused, setIsFocused] = useState(false);
     const hasValue = value !== '' && value !== undefined;
     const isActive = isFocused || hasValue;
-    const inputId = id || `input-${label.replace(/\s+/g, '-').toLowerCase()}`;
+    const inputId = id || `input-${label ? label.replace(/\s+/g, '-').toLowerCase() : Math.random().toString(36).slice(2)}`;
 
     return (
         <div className={`relative ${containerClassName}`}>

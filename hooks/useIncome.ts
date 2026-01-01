@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
-import api from '../services/api';
 import { Income } from '../types/income';
 import { handleApiError, logError } from '../utils/error-handler';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { IncomeRepository } from '../services/repositories/IncomeRepository';
 
 export const useIncome = () => {
     const { t } = useTranslation();
@@ -13,23 +14,34 @@ export const useIncome = () => {
     const fetchIncome = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/income');
-            setIncome(response.data);
+            const data = await IncomeRepository.getAll();
+            setIncome(data);
         } catch (err: any) {
-            handleApiError(err, 'Failed to fetch income');
-            logError('useIncome.fetchIncome', err);
+            console.error('Failed to fetch income logic', err);
+            // handleApiError(err, 'Failed to fetch income'); // Maybe too noisy for offline fallback
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
+        // Listen for sync events to refresh data after background sync
+        const handleSync = () => {
+            console.log('Refreshing income after sync...');
+            fetchIncome();
+        };
+        window.addEventListener('finora-synced', handleSync);
+
         fetchIncome();
+
+        return () => {
+            window.removeEventListener('finora-synced', handleSync);
+        };
     }, []);
 
     const addIncome = async (data: Partial<Income>) => {
         try {
-            await api.post('/income', data);
+            await IncomeRepository.create(data);
             toast.success(t('income_added_success'));
             await fetchIncome();
         } catch (err) {
@@ -41,7 +53,7 @@ export const useIncome = () => {
 
     const updateIncome = async (id: string, data: Partial<Income>) => {
         try {
-            await api.put(`/income/${id}`, data);
+            await IncomeRepository.update(id, data);
             toast.success(t('income_updated_success'));
             await fetchIncome();
         } catch (err) {
@@ -55,7 +67,7 @@ export const useIncome = () => {
         if (!window.confirm(t('delete_income_confirm'))) return;
 
         try {
-            await api.delete(`/income/${id}`);
+            await IncomeRepository.delete(id);
             toast.success(t('income_deleted_success'));
             await fetchIncome();
         } catch (err) {

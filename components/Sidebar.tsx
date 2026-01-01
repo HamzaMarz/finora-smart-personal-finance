@@ -39,7 +39,7 @@ const Sidebar: React.FC = () => {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto no-scrollbar">
-                <p className="px-4 text-xs font-bold text-textSecondary dark:text-gray-500 uppercase tracking-wider mb-2">{t('menu')}</p>
+                <p className="px-4 text-sm font-bold text-textSecondary dark:text-gray-500 uppercase tracking-wider mb-2">{t('menu')}</p>
                 {navItems.map((item) => (
                     <NavLink
                         key={item.path}
@@ -51,10 +51,10 @@ const Sidebar: React.FC = () => {
                             }`
                         }
                     >
-                        <span className="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform duration-200">
+                        <span className="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform duration-200">
                             {item.icon}
                         </span>
-                        <span className="text-sm">{t(item.label)}</span>
+                        <span className="text-base font-medium">{t(item.label)}</span>
                         {item.label === 'notifications' && unreadCount > 0 && (
                             <span className={`ms-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${window.location.hash.endsWith('notifications')
                                 ? 'bg-white/20 text-white'

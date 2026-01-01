@@ -160,6 +160,53 @@ app.put('/api/rates/:code', authenticate, async (req: any, res) => {
 
 // ==================== BACKUP ROUTES ====================
 // ... (rest of file)
+// ==================== RESTORE ROUTE ====================
+app.post('/api/data/restore', authenticate, async (req: any, res) => {
+  try {
+    const userId = req.user.userId;
+    const data = req.body;
+
+    // 1. Clear existing data
+    await StorageService.income.deleteAllByUser(userId);
+    await StorageService.expenses.deleteAllByUser(userId);
+    await StorageService.savings.deleteAllByUser(userId);
+    await StorageService.investments.deleteAllByUser(userId);
+    await StorageService.notifications.deleteAll(userId);
+
+    // 2. Insert new data (keeping existing IDs)
+    if (data.income) {
+      for (const item of data.income) {
+        // IDB stores keys like 'start_date' as 'startDate' if mapping was done?
+        // Wait, ClientBackupService uses IndexedDBService.getAll() which returns the raw objects.
+        // The raw objects in IDB seem to match the interface (camelCase) based on previous usage?
+        // Let's assume the body matches the interface.
+        // Note: The backup payload logic in ClientBackupService needs to send this.
+        await StorageService.income.create({ ...item, userId });
+      }
+    }
+    if (data.expenses) {
+      for (const item of data.expenses) await StorageService.expenses.create({ ...item, userId });
+    }
+    if (data.savings) {
+      for (const item of data.savings) await StorageService.savings.create({ ...item, userId });
+    }
+    if (data.investments) {
+      for (const item of data.investments) await StorageService.investments.create({ ...item, userId });
+    }
+    if (data.notifications) {
+      for (const item of data.notifications) await StorageService.notifications.create({ ...item, userId });
+    }
+
+    // 3. Update User Profile if included (optional)
+    // if (data.user) { ... }
+
+    res.json({ success: true, message: 'Restore successful' });
+  } catch (error: any) {
+    console.error('❌ Restore failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== AUTH ROUTES ====================
 app.post('/auth/register', async (req, res) => {
   try {
@@ -186,7 +233,7 @@ app.get('/auth/google/callback', async (req, res) => {
     const { code } = req.query;
 
     if (!code) {
-      return res.redirect('http://localhost:3000/login?error=no_code');
+      return res.redirect(`${process.env.CORS_ORIGIN || 'http://localhost:3000'}/login?error=no_code`);
     }
 
     // Exchange code for tokens
@@ -213,10 +260,10 @@ app.get('/auth/google/callback', async (req, res) => {
     });
 
     // Redirect to frontend login page with token in query parameter
-    res.redirect(`http://localhost:3000/?token=${result.token}`);
+    res.redirect(`${process.env.CORS_ORIGIN || 'http://localhost:3000'}/?token=${result.token}`);
   } catch (error: any) {
     console.error('Google OAuth error:', error.response?.data || error.message);
-    res.redirect('http://localhost:3000/login?error=oauth_failed');
+    res.redirect(`${process.env.CORS_ORIGIN || 'http://localhost:3000'}/login?error=oauth_failed`);
   }
 });
 

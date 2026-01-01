@@ -45,8 +45,8 @@ const Header: React.FC = () => {
 
             {/* Desktop Welcome */}
             <div className="hidden lg:block">
-                <h2 className="text-xl font-bold text-textPrimary dark:text-white">{t('dashboard')}</h2>
-                <p className="text-sm text-textSecondary dark:text-gray-400">{t('welcome_back_message')}</p>
+                <h2 className="text-2xl font-bold text-textPrimary dark:text-white">{t('dashboard')}</h2>
+                <p className="text-base text-textSecondary dark:text-gray-400">{t('welcome_back_message')}</p>
             </div>
 
             <div className="flex items-center gap-4 relative notification-container">
@@ -60,9 +60,8 @@ const Header: React.FC = () => {
                     )}
                 </button>
 
-                {/* Notifications Dropdown */}
                 {showNotifications && (
-                    <div className="absolute top-16 right-0 w-[400px] bg-white dark:bg-darkSurface rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animation-fade-in-up">
+                    <div className="absolute top-16 ltr:right-0 rtl:left-0 w-[400px] bg-white dark:bg-darkSurface rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animation-fade-in-up">
                         <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-bold text-lg text-textPrimary dark:text-white">{t('notifications')}</h3>
@@ -87,7 +86,7 @@ const Header: React.FC = () => {
                                             : 'bg-white dark:bg-gray-700 text-textSecondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
                                             }`}
                                     >
-                                        {t(cat)}
+                                        <span className="text-sm">{t(cat)}</span>
                                     </button>
                                 ))}
                             </div>
@@ -121,10 +120,10 @@ const Header: React.FC = () => {
                                         >
                                             <div className="flex items-start gap-4">
                                                 <div className={`size-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${notification.category === 'budget' ? 'bg-orange-100 text-orange-600' :
-                                                        notification.category === 'income' ? 'bg-green-100 text-green-600' :
-                                                            notification.category === 'expense' ? 'bg-red-100 text-red-600' :
-                                                                notification.category === 'alert' ? 'bg-yellow-100 text-yellow-600' :
-                                                                    'bg-primary/10 text-primary'
+                                                    notification.category === 'income' ? 'bg-green-100 text-green-600' :
+                                                        notification.category === 'expense' ? 'bg-red-100 text-red-600' :
+                                                            notification.category === 'alert' ? 'bg-yellow-100 text-yellow-600' :
+                                                                'bg-primary/10 text-primary'
                                                     }`}>
                                                     <span className="material-symbols-outlined text-[20px]">
                                                         {notification.category === 'alert' ? 'warning' : 'notifications'}
@@ -139,7 +138,7 @@ const Header: React.FC = () => {
                                                             {new Date(notification.createdAt).toLocaleDateString()}
                                                         </span>
                                                     </div>
-                                                    <p className="text-xs text-textSecondary dark:text-gray-400 leading-relaxed line-clamp-2">
+                                                    <p className="text-sm text-textSecondary dark:text-gray-400 leading-relaxed line-clamp-2">
                                                         {getLocalizedText(notification.message)}
                                                     </p>
                                                 </div>
