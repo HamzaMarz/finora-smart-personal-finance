@@ -1,6 +1,6 @@
 import { initializeDatabase } from '../database/sqlite';
 
-console.log('🚀 Initializing Finora database...');
+console.log('🚀 Initializing UrWallet database...');
 
 try {
     initializeDatabase();

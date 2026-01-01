@@ -30,8 +30,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'Finora - Smart Personal Finance',
-          short_name: 'Finora',
+          name: 'UrWallet - محفظتك الشخصية',
+          short_name: 'UrWallet',
           description: 'Smart Personal Finance Management Application',
           theme_color: '#ffffff',
           icons: [

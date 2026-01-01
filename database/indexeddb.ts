@@ -1,7 +1,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
 // Define database schema
-interface FinoraDB extends DBSchema {
+interface UrWalletDB extends DBSchema {
     users: {
         key: string;
         value: {
@@ -101,13 +101,13 @@ interface FinoraDB extends DBSchema {
     };
 }
 
-let dbInstance: IDBPDatabase<FinoraDB> | null = null;
+let dbInstance: IDBPDatabase<UrWalletDB> | null = null;
 
 // Initialize IndexedDB
-export async function initializeIndexedDB(): Promise<IDBPDatabase<FinoraDB>> {
+export async function initializeIndexedDB(): Promise<IDBPDatabase<UrWalletDB>> {
     if (dbInstance) return dbInstance;
 
-    dbInstance = await openDB<FinoraDB>('finora-db', 2, {
+    dbInstance = await openDB<UrWalletDB>('urwallet-db', 2, {
         upgrade(db) {
             // Users store
             if (!db.objectStoreNames.contains('users')) {
@@ -160,7 +160,7 @@ export async function initializeIndexedDB(): Promise<IDBPDatabase<FinoraDB>> {
 }
 
 // Get database instance
-export async function getDB(): Promise<IDBPDatabase<FinoraDB>> {
+export async function getDB(): Promise<IDBPDatabase<UrWalletDB>> {
     if (!dbInstance) {
         return await initializeIndexedDB();
     }
@@ -170,47 +170,47 @@ export async function getDB(): Promise<IDBPDatabase<FinoraDB>> {
 // Generic CRUD operations
 export const IndexedDBService = {
     // Create
-    async create<T extends keyof FinoraDB>(storeName: T, data: FinoraDB[T]['value']): Promise<void> {
+    async create<T extends keyof UrWalletDB>(storeName: T, data: UrWalletDB[T]['value']): Promise<void> {
         const db = await getDB();
         await db.add(storeName as any, data as any);
     },
 
     // Read one
-    async getById<T extends keyof FinoraDB>(storeName: T, id: string): Promise<FinoraDB[T]['value'] | undefined> {
+    async getById<T extends keyof UrWalletDB>(storeName: T, id: string): Promise<UrWalletDB[T]['value'] | undefined> {
         const db = await getDB();
         return await db.get(storeName as any, id);
     },
 
     // Read all
-    async getAll<T extends keyof FinoraDB>(storeName: T): Promise<FinoraDB[T]['value'][]> {
+    async getAll<T extends keyof UrWalletDB>(storeName: T): Promise<UrWalletDB[T]['value'][]> {
         const db = await getDB();
         return await db.getAll(storeName as any);
     },
 
     // Read by index
-    async getAllByIndex<T extends keyof FinoraDB>(
+    async getAllByIndex<T extends keyof UrWalletDB>(
         storeName: T,
         indexName: string,
         query: any
-    ): Promise<FinoraDB[T]['value'][]> {
+    ): Promise<UrWalletDB[T]['value'][]> {
         const db = await getDB();
         return await db.getAllFromIndex(storeName as any, indexName as any, query);
     },
 
     // Update
-    async update<T extends keyof FinoraDB>(storeName: T, data: FinoraDB[T]['value']): Promise<void> {
+    async update<T extends keyof UrWalletDB>(storeName: T, data: UrWalletDB[T]['value']): Promise<void> {
         const db = await getDB();
         await db.put(storeName as any, data as any);
     },
 
     // Delete
-    async delete<T extends keyof FinoraDB>(storeName: T, id: string): Promise<void> {
+    async delete<T extends keyof UrWalletDB>(storeName: T, id: string): Promise<void> {
         const db = await getDB();
         await db.delete(storeName as any, id);
     },
 
     // Clear store
-    async clear<T extends keyof FinoraDB>(storeName: T): Promise<void> {
+    async clear<T extends keyof UrWalletDB>(storeName: T): Promise<void> {
         const db = await getDB();
         await db.clear(storeName as any);
     },

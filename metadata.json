@@ -1,5 +1,5 @@
 {
-  "name": "Finora - Smart Personal Finance",
+  "name": "UrWallet - محفظتك الشخصية",
   "description": "A modern, scalable personal finance management application with full localization, AI insights, and cross-platform readiness.",
   "requestFramePermissions": [
     "camera",

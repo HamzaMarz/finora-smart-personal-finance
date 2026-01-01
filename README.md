@@ -1,6 +1,9 @@
-# Finora - Smart Personal Finance Management 🏦
+# UrWallet - محفظتك الشخصية 🏦
 
 <div align="center">
+  <img src="public/assets/urwallet_banner.png" alt="UrWallet Banner" width="100%">
+  <br><br>
+  <img src="public/assets/urwallet_logo.png" alt="UrWallet Logo" width="150">
   <h3>💰 Production-Ready Professional Financial Management Application</h3>
   <p>Track income, expenses, savings, and investments with advanced Offline-First architecture</p>
   <p><strong>Full Arabic & English Support | RTL/LTR | Installable PWA</strong></p>
@@ -289,7 +292,7 @@ finora---smart-personal-finance/
 
 ### Desktop (Chrome/Edge)
 1. Click install icon in address bar
-2. Or: Menu → Install Finora
+2. Or: Menu → Install UrWallet
 
 ### Mobile (Android)
 1. Open in Chrome
@@ -577,7 +580,7 @@ expect(mockRepo.create).toHaveBeenCalled();
   <p><strong>Clean Code = Clear, Explicit, Predictable Code</strong></p>
   <p>⭐ Star this repo if you find it useful!</p>
   <br>
-  <p><strong>Finora - Your Smart Financial Assistant</strong></p>
+  <p><strong>UrWallet - Your Smart Financial Assistant</strong></p>
   <br>
   <p>
     <a href="#-key-features">Features</a> •

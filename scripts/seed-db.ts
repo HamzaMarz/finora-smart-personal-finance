@@ -1,7 +1,7 @@
 import { StorageService } from '../database/storage.service';
 import bcrypt from 'bcryptjs';
 
-console.log('🌱 Seeding Finora database...');
+console.log('🌱 Seeding UrWallet database...');
 
 async function seed() {
     try {
@@ -142,7 +142,7 @@ async function seed() {
         await StorageService.notifications.create({
             userId: user.id,
             type: 'system',
-            title: 'Welcome to Finora!',
+            title: 'Welcome to UrWallet!',
             message: 'Your account has been set up successfully. Start tracking your finances today.',
             isRead: true,
         });

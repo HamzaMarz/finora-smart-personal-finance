@@ -40,7 +40,7 @@ export class AiService {
       const langInstruction = language === 'ar' ? 'Respond in Arabic.' : 'Respond in English.';
 
       const prompt = `
-You are Finora AI, a professional financial advisor.
+You are UrWallet AI, a professional financial advisor.
 ${langInstruction}
 Analyze this financial data:
 - Income: ${totalIncome}

@@ -195,7 +195,7 @@ export const seedDemoData = async (userId: string) => {
             id: `notif-1-${userId}`,
             userId,
             type: 'system',
-            title: 'Welcome to Finora Demo',
+            title: 'Welcome to UrWallet Demo',
             message: 'Explore all features freely. Data is local.',
             category: 'system',
             isRead: false,

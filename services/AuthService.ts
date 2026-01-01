@@ -37,7 +37,7 @@ export class AuthService {
     await StorageService.notifications.create({
       userId: user.id,
       type: 'system',
-      title: 'Welcome to Finora!',
+      title: 'Welcome to UrWallet!',
       message: 'Your account has been created successfully. Start managing your finances today.',
       category: 'system',
       isRead: false,
@@ -110,7 +110,7 @@ export class AuthService {
       await StorageService.notifications.create({
         userId: user.id,
         type: 'system',
-        title: 'Welcome to Finora!',
+        title: 'Welcome to UrWallet!',
         message: 'Your account has been created via Google. Start managing your finances today.',
         category: 'system',
         isRead: false,

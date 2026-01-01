@@ -5,7 +5,7 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
-      "app_name": "Finora",
+      "app_name": "UrWallet",
       "dashboard": "Dashboard",
       "expenses": "Expenses",
       "income": "Income",
@@ -117,7 +117,7 @@ const resources = {
       "all": "All",
       "or": "Or",
       "login_error": "Login failed",
-      "network_error_msg": "Cannot reach Finora backend. Is the server running on port 5000?",
+      "network_error_msg": "Cannot reach UrWallet backend. Is the server running on port 5000?",
       "all_data_converted": "All your financial data will be converted to this currency for reporting.",
       "no_rates_available": "No rates available. Click Sync to fetch.",
       "syncing_dots": "Syncing...",
@@ -291,7 +291,7 @@ const resources = {
   },
   ar: {
     translation: {
-      "app_name": "فينورا",
+      "app_name": "محفظتك الشخصية",
       "expense": "مصروف",
       "investment": "استثمار",
       "expense_added_title": "تم إضافة مصروف",
@@ -411,7 +411,7 @@ const resources = {
       "all": "الكل",
       "or": "أو",
       "login_error": "فشل تسجيل الدخول",
-      "network_error_msg": "لا يمكن الوصول إلى خادم فينورا. هل الخادم يعمل على المنفذ 5000؟",
+      "network_error_msg": "لا يمكن الوصول إلى خادم محفظتك الشخصية. هل الخادم يعمل على المنفذ 5000؟",
       "all_data_converted": "سيتم تحويل جميع بياناتك المالية إلى هذه العملة لإعداد التقارير.",
       "no_rates_available": "لا تتوفر أسعار صرف. اضغط على مزامنة للجلب.",
       "syncing_dots": "جاري المزامنة...",

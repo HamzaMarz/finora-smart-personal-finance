@@ -1,6 +1,6 @@
 {
-    "name": "Finora - Personal Finance",
-    "short_name": "Finora",
+    "name": "UrWallet - محفظتك الشخصية",
+    "short_name": "UrWallet",
     "description": "Smart personal finance and investment management application",
     "start_url": "/",
     "display": "standalone",

@@ -961,7 +961,7 @@ app.get('/health', (req, res) => {
 
 // ==================== START SERVER ====================
 app.listen(port, () => {
-  console.log(`\n🚀 Finora Backend running on http://localhost:${port}`);
+  console.log(`\n🚀 UrWallet Backend running on http://localhost:${port}`);
   console.log(`📊 Database: SQLite (${process.env.DATABASE_PATH || './finora.db'})`);
   console.log(`🔐 JWT Secret: ${process.env.JWT_SECRET ? '✓ Configured' : '⚠ Using default'}`);
   console.log(`🤖 AI Service: ${process.env.GEMINI_API_KEY ? '✓ Enabled' : '⚠ Disabled'}`);
