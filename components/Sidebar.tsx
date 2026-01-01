@@ -27,8 +27,8 @@ const Sidebar: React.FC = () => {
             {/* Logo Area */}
             <div className="p-8 pb-4">
                 <div className="flex items-center gap-4">
-                    <div className="size-12 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-lg shadow-primary/20">
-                        <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
+                    <div className="size-12 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center shadow-lg shadow-black/5 overflow-hidden">
+                        <img src="/assets/urwallet_logo.png" alt="UrWallet Logo" className="size-10 object-contain" />
                     </div>
                     <div className="flex flex-col">
                         <h1 className="font-heading font-bold text-2xl text-textPrimary dark:text-white tracking-tight">{t('app_name')}</h1>

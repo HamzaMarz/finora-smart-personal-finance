@@ -71,8 +71,8 @@ const Login: React.FC = () => {
 
       <div className="w-full max-w-[420px] space-y-8 relative z-10 animate-fade-in-up">
         <div className="text-center">
-          <div className="size-20 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20 mx-auto mb-6 rotate-3 hover:rotate-6 transition-transform duration-300">
-            <span className="material-symbols-outlined text-4xl">account_balance_wallet</span>
+          <div className="size-20 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-xl shadow-black/5 mx-auto mb-6 rotate-3 hover:rotate-6 transition-transform duration-300 overflow-hidden border border-gray-100 dark:border-gray-800">
+            <img src="/assets/urwallet_logo.png" alt="UrWallet Logo" className="size-16 object-contain" />
           </div>
           <h1 className="text-4xl font-black tracking-tight mb-2 text-textPrimary dark:text-white">{t('app_name')}</h1>
           <p className="text-lg font-bold text-primary mb-2">{t('personal_finance')}</p>

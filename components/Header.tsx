@@ -37,8 +37,8 @@ const Header: React.FC = () => {
         <header className="h-20 flex-shrink-0 bg-surface/80 dark:bg-darkSurface/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 z-20 sticky top-0 transition-colors duration-200">
             {/* Mobile Logo (Visible only on lg:hidden is handled by parent layout mostly, but we add it here just in case or for small screens) */}
             <div className="lg:hidden flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center shadow-lg shadow-primary/20">
-                    <span className="material-symbols-outlined">account_balance_wallet</span>
+                <div className="size-10 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center shadow-md shadow-black/5 overflow-hidden border border-gray-100 dark:border-gray-800">
+                    <img src="/assets/urwallet_logo.png" alt="UrWallet Logo" className="size-8 object-contain" />
                 </div>
                 <h1 className="font-heading font-bold text-lg text-textPrimary dark:text-white">{t('app_name')}</h1>
             </div>
