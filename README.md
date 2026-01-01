@@ -67,7 +67,7 @@ Interface Layer (HTTP Controllers)
 - ✅ **Zero Breaking Changes** - Fully backward compatible
 
 ### Architecture Statistics
-- � **41 implementation files** across 4 layers
+- 📁 **41 implementation files** across 4 layers
 - 📚 **6 comprehensive documentation files**
 - 🎯 **100% repository coverage** (all 7 repositories)
 - 📏 **~3,800 lines** of clean, focused code
@@ -105,7 +105,34 @@ See also: **`src/README.md`** for quick start guide.
 
 ---
 
-## �🚀 Quick Start
+## 🎨 Frontend Architecture ✨ NEW
+
+The frontend follows **modern React best practices** with complete separation of concerns:
+
+### Architecture Pattern
+
+```
+Pages (UI & Layout)
+  ↓
+Custom Hooks (Business Logic & API Calls)
+  ↓
+Components (Reusable UI Elements)
+  ↓
+Utils & Constants (Shared Logic & Data)
+```
+
+### Key Features
+- 🎣 **Custom Hooks** - specific hooks for each feature (Income, Expense, etc.)
+- 🧩 **Reusable Components** - Typed and themeable UI components (Cards, Modals, Inputs)
+- 📊 **Type Safety** - 100% TypeScript coverage via shared types and interfaces
+- 🌍 **i18n** - Full Arabic/English support with RTL/LTR layouts
+- 🛠️ **Utility Modules** - Shared logic for calculations, currency, dates, and validation
+
+See **`FRONTEND_ARCHITECTURE.md`** in the brain artifacts folder for detailed documentation.
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ installed
