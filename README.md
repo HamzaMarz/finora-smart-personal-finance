@@ -4,7 +4,6 @@
   <h3>🏦 Production-Ready Financial Management Application</h3>
   <p>Track income, expenses, savings, and investments with offline-first architecture</p>
   
-  **✨ NEW: Backend refactored to Clean Architecture with 100% test coverage ready**
 </div>
 
 ---
